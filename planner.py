@@ -72,16 +72,25 @@ class PointSet(object):
         upper_hull.pop()
         upper_hull.reverse()
 
-        convex_hull = lower_hull + upper_hull
+        self.convex_hull = lower_hull + upper_hull
 
         self.inner_points = deepcopy(self.point_list)
-        for point in convex_hull:
+        for point in self.convex_hull:
             self.inner_points.remove(point)
 
-        return PointSet(lower_hull + upper_hull)
+        return PointSet(self.convex_hull)
+
+    def cover(self, point):
+        """return whether point is inside convex hull's coverage"""
+        for i in xrange(1, len(self.convex_hull)):
+            if crossProduct(point, self.convex_hull[i-1], self.convex_hull[i]) < 0:
+                return False
+        return True
 
 
 if __name__ == '__main__':
     s = PointSet([Point(0,0), Point(0,1), Point(1,1), Point(1.2,0.2), Point(2,0), Point(0.5,-0.5), Point(1,-1)])
     print s.convexHull()
     print s.inner_points
+
+    print s.cover(Point(0.1,0.1))
