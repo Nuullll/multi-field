@@ -2,6 +2,7 @@
 # planner.py
 
 from copy import deepcopy
+from itertools import product
 
 class Point(object):
     """Point (x, y)"""
@@ -11,7 +12,7 @@ class Point(object):
         self.y = y
 
     def __repr__(self):
-        return '<Point (%0.1f, %0.1f)>' % (self.x, self.y)
+        return '(%d, %d)' % (self.x, self.y)
 
     def __str__(self):
         return '<Point (%0.1f, %0.1f)>' % (self.x, self.y)
@@ -41,6 +42,9 @@ class PointSet(object):
 
     def __iter__(self):
         return self.point_list.__iter__()
+
+    def __getitem__(self, index):
+        return self.point_list[index]
 
     @property
     def norm(self):
@@ -86,7 +90,7 @@ class PointSet(object):
             for point in self._convex_hull:
                 self.inner_points.remove(point)
 
-        return self._convex_hull
+        return ConvexHull(self._convex_hull)
 
     @property
     def inner_points(self):
@@ -96,18 +100,62 @@ class PointSet(object):
 
     def cover(self, point):
         """return whether point is inside convex hull's coverage"""
-        for i in xrange(1, len(self.convex_hull)):
+        for i in xrange(1, self.convex_hull.norm):
             if crossProduct(point, self.convex_hull[i-1], self.convex_hull[i]) < 0:
                 return False
         return True
 
-    def triangulation(self):
-        """yield [triangle, triangle, ...]"""
-        pass
 
+class ConvexHull(PointSet):
+    def __init__(self, point_list):
+        super(ConvexHull, self).__init__(point_list)
+
+    def partition(self, index):
+        partitions = []
+        middle_part = ConvexHull([self[0], self[index], self[-1]])
+        right_part = ConvexHull(self[:index+1])
+        left_part = ConvexHull(self[index:])
+        if self.norm >= 3:
+            for i in range(1, right_part.norm-1):
+                for j in range(1, left_part.norm-1):
+                    partitions.append([middle_part, right_part.partition(i), left_part.partition(j)])
+        return partitions
+        
+    def triangulation(self):
+        """return set of [triangle, triangle, ...]"""
+        partitions = []
+        partition = []
+        if self.norm >= 3:
+            for i in range(1, self.norm-1):
+                middle_part = ConvexHull([self[0], self[i], self[-1]])
+                right_part = ConvexHull(self[:i+1])
+                left_part = ConvexHull(self[i:])
+                if right_part.norm < 3:
+                    if left_part.norm < 3:
+                        partition.append(middle_part)
+                        partitions.append(partition)
+                    else:
+                        for a in middle_part.triangulation():
+                            for b in left_part.triangulation():
+                                partitions.append(partition + a + b)
+                elif left_part.norm < 3:
+                    for a in middle_part.triangulation():
+                        for b in right_part.triangulation():
+                            partitions.append(partition + a + b)
+                else:
+                    for a in middle_part.triangulation():
+                        for b in right_part.triangulation():
+                            for c in left_part.triangulation():
+                                partitions.append(partition + a + b + c)
+        return partitions
 
 if __name__ == '__main__':
     s = PointSet([Point(0,0), Point(0,1), Point(1,1), Point(1.2,0.2), Point(2,0), Point(0.5,-0.5), Point(1,-1)])
     print s.convex_hull
     print s.inner_points
     print s.cover(Point(0.1,0.1))
+
+    ch = s.convex_hull
+    for partition in ch.triangulation():
+        print partition
+
