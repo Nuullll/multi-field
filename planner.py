@@ -39,6 +39,9 @@ class PointSet(object):
     def __str__(self):
         return self.point_list.__str__()
 
+    def __iter__(self):
+        return self.point_list.__iter__()
+
     @property
     def norm(self):
         return len(self.point_list)
@@ -59,7 +62,7 @@ class PointSet(object):
 
             lower_hull = []
             # lower hull
-            for point in self.point_list:
+            for point in self:
                 while (len(lower_hull) >= 2
                         and crossProduct(lower_hull[-2], lower_hull[-1], point) <= 0):
                     lower_hull.pop()
@@ -67,7 +70,7 @@ class PointSet(object):
 
             upper_hull = []
             # upper hull
-            for point in self.point_list:
+            for point in self:
                 while (len(upper_hull) >= 2
                         and crossProduct(upper_hull[-2], upper_hull[-1], point) >= 0):
                     upper_hull.pop()
@@ -98,10 +101,13 @@ class PointSet(object):
                 return False
         return True
 
+    def triangulation(self):
+        """yield [triangle, triangle, ...]"""
+        pass
+
 
 if __name__ == '__main__':
     s = PointSet([Point(0,0), Point(0,1), Point(1,1), Point(1.2,0.2), Point(2,0), Point(0.5,-0.5), Point(1,-1)])
     print s.convex_hull
     print s.inner_points
-
     print s.cover(Point(0.1,0.1))
