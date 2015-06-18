@@ -31,6 +31,7 @@ class PointSet(object):
     def __init__(self, point_list):
         super(PointSet, self).__init__()
         self.point_list = point_list
+        self.need_update = True
 
     def __repr__(self):
         return self.point_list.__repr__()
@@ -47,38 +48,48 @@ class PointSet(object):
 
     def addPoint(self, new_point):
         self.point_list.append(new_point)
+        self.need_update = True
 
-    def convexHull(self):
+    @property
+    def convex_hull(self):
         """return vertex set of convex hull"""
-        # sort by coordinate x
-        self.sortPoint()
+        if self.need_update:
+            # sort by coordinate x
+            self.sortPoint()
 
-        lower_hull = []
-        # lower hull
-        for point in self.point_list:
-            while (len(lower_hull) >= 2
-                    and crossProduct(lower_hull[-2], lower_hull[-1], point) <= 0):
-                lower_hull.pop()
-            lower_hull.append(point)
+            lower_hull = []
+            # lower hull
+            for point in self.point_list:
+                while (len(lower_hull) >= 2
+                        and crossProduct(lower_hull[-2], lower_hull[-1], point) <= 0):
+                    lower_hull.pop()
+                lower_hull.append(point)
 
-        upper_hull = []
-        # upper hull
-        for point in self.point_list:
-            while (len(upper_hull) >= 2
-                    and crossProduct(upper_hull[-2], upper_hull[-1], point) >= 0):
-                upper_hull.pop()
-            upper_hull.append(point)
-        upper_hull.pop(0)
-        upper_hull.pop()
-        upper_hull.reverse()
+            upper_hull = []
+            # upper hull
+            for point in self.point_list:
+                while (len(upper_hull) >= 2
+                        and crossProduct(upper_hull[-2], upper_hull[-1], point) >= 0):
+                    upper_hull.pop()
+                upper_hull.append(point)
+            upper_hull.pop(0)
+            upper_hull.pop()
+            upper_hull.reverse()
 
-        self.convex_hull = lower_hull + upper_hull
+            self._convex_hull = lower_hull + upper_hull
+            self.need_update = False
 
-        self.inner_points = deepcopy(self.point_list)
-        for point in self.convex_hull:
-            self.inner_points.remove(point)
+            self._inner_points = deepcopy(self.point_list)
+            for point in self._convex_hull:
+                self.inner_points.remove(point)
 
-        return PointSet(self.convex_hull)
+        return self._convex_hull
+
+    @property
+    def inner_points(self):
+        if self.need_update:
+            self.convex_hull
+        return self._inner_points
 
     def cover(self, point):
         """return whether point is inside convex hull's coverage"""
@@ -90,7 +101,7 @@ class PointSet(object):
 
 if __name__ == '__main__':
     s = PointSet([Point(0,0), Point(0,1), Point(1,1), Point(1.2,0.2), Point(2,0), Point(0.5,-0.5), Point(1,-1)])
-    print s.convexHull()
+    print s.convex_hull
     print s.inner_points
 
     print s.cover(Point(0.1,0.1))
