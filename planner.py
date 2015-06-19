@@ -12,10 +12,10 @@ class Point(object):
         self.y = y
 
     def __repr__(self):
-        return '(%d, %d)' % (self.x, self.y)
+        return '(%0.1f, %0.1f)' % (self.x, self.y)
 
     def __str__(self):
-        return '<Point (%0.1f, %0.1f)>' % (self.x, self.y)
+        return '(%0.1f, %0.1f)' % (self.x, self.y)
 
     def __lt__(self, other):
         return self.x < other.x or (self.x == other.x and self.y < other.y)
@@ -57,6 +57,9 @@ class PointSet(object):
         self.point_list.append(new_point)
         self.need_update = True
 
+    def remove(self, target):
+        self.point_list.remove(target)
+
     @property
     def convex_hull(self):
         """return vertex set of convex hull"""
@@ -83,43 +86,38 @@ class PointSet(object):
             upper_hull.pop()
             upper_hull.reverse()
 
-            self._convex_hull = lower_hull + upper_hull
+            self._convex_hull = ConvexHull(lower_hull + upper_hull)
             self.need_update = False
 
-            self._inner_points = deepcopy(self.point_list)
+            self.inner_points = deepcopy(self.point_list)
             for point in self._convex_hull:
                 self.inner_points.remove(point)
 
-        return ConvexHull(self._convex_hull)
-
-    @property
-    def inner_points(self):
-        if self.need_update:
-            self.convex_hull
-        return self._inner_points
+        return self._convex_hull
 
     def cover(self, point):
         """return whether point is inside convex hull's coverage"""
         for i in xrange(1, self.convex_hull.norm):
             if crossProduct(point, self.convex_hull[i-1], self.convex_hull[i]) < 0:
                 return False
-        return True
+        return True if crossProduct(point, self.convex_hull[-1], self.convex_hull[0]) > 0 else False
+
+    def divide(self, partition):
+        """determine the location of each point under the partition"""
+        new_partition = []
+        for triangle in partition:
+            # IsInstance(triangle, ConvexHull) is True
+            triangle = Triangle(triangle.point_list)    # triangle with no inner points
+            for point in self.inner_points:
+                if triangle.cover(point):
+                    triangle.addInnerPoints(point)
+            new_partition.append(triangle)
+        return new_partition
 
 
 class ConvexHull(PointSet):
     def __init__(self, point_list):
         super(ConvexHull, self).__init__(point_list)
-
-    def partition(self, index):
-        partitions = []
-        middle_part = ConvexHull([self[0], self[index], self[-1]])
-        right_part = ConvexHull(self[:index+1])
-        left_part = ConvexHull(self[index:])
-        if self.norm >= 3:
-            for i in range(1, right_part.norm-1):
-                for j in range(1, left_part.norm-1):
-                    partitions.append([middle_part, right_part.partition(i), left_part.partition(j)])
-        return partitions
         
     def triangulation(self):
         """return set of [triangle, triangle, ...]"""
@@ -149,6 +147,31 @@ class ConvexHull(PointSet):
                                 partitions.append(partition + a + b + c)
         return partitions
 
+class Triangle(PointSet):
+    """a point set whose convex hull is a triangle (ABC), find balance-key solution here"""
+    def __init__(self, point_list):
+        super(Triangle, self).__init__(point_list)
+        self.A = self.convex_hull[0]
+        self.B = self.convex_hull[1]
+        self.C = self.convex_hull[2]
+
+    def __repr__(self):
+        return ('outer: ' + [self.A, self.B, self.C].__repr__() + '\n'
+                + 'inner: ' + self.inner_points.__repr__())
+
+    def __str__(self):
+        return ('outer: ' + [self.A, self.B, self.C].__str__() + '\n'
+                + 'inner: ' + self.inner_points.__str__())
+
+    def addInnerPoints(self, new_point):
+        self.inner_points.append(new_point)
+        
+    def findBalanceKeySolution(self):
+        """return min(max(degree_in) for all vertices) for all partition, 
+        remark: degree_in does NOT count the degree related with edge AB, BC, CA"""
+        pass
+
+
 if __name__ == '__main__':
     s = PointSet([Point(0,0), Point(0,1), Point(1,1), Point(1.2,0.2), Point(2,0), Point(0.5,-0.5), Point(1,-1)])
     print s.convex_hull
@@ -156,6 +179,13 @@ if __name__ == '__main__':
     print s.cover(Point(0.1,0.1))
 
     ch = s.convex_hull
-    for partition in ch.triangulation():
-        print partition
+    partitions = ch.triangulation()
+    for partition in partitions:
+        # for element in partition:
+        for triangle in s.divide(partition):
+            print triangle
+        print
 
+    # t = Triangle([Point(0,0), Point(1,2), Point(3,0), Point(1,1)])
+    # print t
+    
