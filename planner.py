@@ -98,7 +98,7 @@ class PointSet(object):
     def cover(self, point):
         """return whether point is inside convex hull's coverage"""
         for i in xrange(1, self.convex_hull.norm):
-            if crossProduct(point, self.convex_hull[i-1], self.convex_hull[i]) < 0:
+            if crossProduct(point, self.convex_hull[i-1], self.convex_hull[i]) <= 0:
                 return False
         return True if crossProduct(point, self.convex_hull[-1], self.convex_hull[0]) > 0 else False
 
@@ -107,10 +107,10 @@ class PointSet(object):
         new_partition = []
         for triangle in partition:
             # IsInstance(triangle, ConvexHull) is True
-            triangle = Triangle(triangle.point_list)    # triangle with no inner points
+            if not isinstance(triangle, Triangle):
+                triangle = Triangle(triangle.point_list)    # triangle with no inner points
             for point in self.inner_points:
-                if triangle.cover(point):
-                    triangle.addInnerPoints(point)
+                triangle.addInnerPoints(point)
             new_partition.append(triangle)
         return new_partition
 
@@ -164,28 +164,45 @@ class Triangle(PointSet):
                 + 'inner: ' + self.inner_points.__str__())
 
     def addInnerPoints(self, new_point):
-        self.inner_points.append(new_point)
+        if self.cover(new_point):
+            self.inner_points.append(new_point)
+
+    def divideIntoThreeTriangle(self, divider):
+        ABD = Triangle([self.A, self.B, divider])
+        BCD = Triangle([self.B, self.C, divider])
+        DCA = Triangle([divider, self.C, self.A])
+        return self.divide([ABD, BCD, DCA])
         
     def findBalanceKeySolution(self):
         """return min(max(degree_in) for all vertices) for all partition, 
         remark: degree_in does NOT count the degree related with edge AB, BC, CA"""
-        pass
+        # traverse all possible divide point
+        for divider in inner_points:    # mark divider as 'D'
+            # traverse jet link in [A->D, B->D, C->D]
+            for jet_point in [self.A, self.B, self.C]:  # mark jet_point as 'A'
+                # traverse direction of BD
+                for d_BD in [0, 1]:     # d_BD == 1 means B->D
+                    # traverse direction of CD
+                    for d_CD in [0, 1]:     # d_CD == 1 means C->D
+                        pass
 
 
 if __name__ == '__main__':
-    s = PointSet([Point(0,0), Point(0,1), Point(1,1), Point(1.2,0.2), Point(2,0), Point(0.5,-0.5), Point(1,-1)])
-    print s.convex_hull
-    print s.inner_points
-    print s.cover(Point(0.1,0.1))
+    # s = PointSet([Point(0,0), Point(0,1), Point(1,1), Point(1.2,0.2), Point(2,0), Point(0.5,-0.5), Point(1,-1)])
+    # print s.convex_hull
+    # print s.inner_points
+    # print s.cover(Point(0.1,0.1))
 
-    ch = s.convex_hull
-    partitions = ch.triangulation()
-    for partition in partitions:
-        # for element in partition:
-        for triangle in s.divide(partition):
-            print triangle
-        print
+    # ch = s.convex_hull
+    # partitions = ch.triangulation()
+    # for partition in partitions:
+    #     # for element in partition:
+    #     for triangle in s.divide(partition):
+    #         print triangle
+    #     print
 
-    # t = Triangle([Point(0,0), Point(1,2), Point(3,0), Point(1,1)])
-    # print t
+    t = Triangle([Point(0,0), Point(1,2), Point(3,0), Point(1,1)])
+    print t
+    for triangle in t.divideIntoThreeTriangle(Point(1,1)):
+        print triangle
     
