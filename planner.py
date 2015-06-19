@@ -165,6 +165,7 @@ class Triangle(PointSet):
 
     def addInnerPoints(self, new_point):
         if self.cover(new_point):
+            self.point_list.append(new_point)
             self.inner_points.append(new_point)
 
     def divideIntoThreeTriangle(self, divider):
@@ -173,18 +174,89 @@ class Triangle(PointSet):
         DCA = Triangle([divider, self.C, self.A])
         return self.divide([ABD, BCD, DCA])
         
-    def findBalanceKeySolution(self):
-        """return min(max(degree_in) for all vertices) for all partition, 
-        remark: degree_in does NOT count the degree related with edge AB, BC, CA"""
+    def findInsideBalanceKeySolution(self):
+        """return a map
+        'key': min(max(degree_in) for all vertices) for all partition, 
+        'links'
+        'out_degree_A', 'out_degree_B', 'out_degree_C'
+        'in_degree_A', 'in_degree_B', 'in_degree_C'
+        remark: degree_in does NOT count the degree related with edge AB, BC, CA
+        """
+        result = {}
+        if self.norm == 3:
+            return {'key':0, 'links':[], 
+                    'out_degree_A':0, 'out_degree_B':0, 'out_degree_C':0,
+                    'in_degree_A':0, 'in_degree_B':0, 'in_degree_C':0}
         # traverse all possible divide point
-        for divider in inner_points:    # mark divider as 'D'
+        for divider in self.inner_points:    # mark divider as 'D'
             # traverse jet link in [A->D, B->D, C->D]
             for jet_point in [self.A, self.B, self.C]:  # mark jet_point as 'A'
                 # traverse direction of BD
                 for d_BD in [0, 1]:     # d_BD == 1 means B->D
                     # traverse direction of CD
                     for d_CD in [0, 1]:     # d_CD == 1 means C->D
-                        pass
+                        sub_triangles = self.divideIntoThreeTriangle(divider)
+                        sub_results = [triangle.findInsideBalanceKeySolution() for triangle in sub_triangles]
+                        tmp_result = {}
+
+                        tmp_result['links'] = sub_results[0]['links'] + sub_results[1]['links'] + sub_results[2]['links']
+
+                        if jet_point == self.A:
+                            tmp_result['out_degree_A'] = 1 + sub_results[0]['out_degree_A'] + sub_results[2]['out_degree_A']
+                            tmp_result['out_degree_B'] = d_BD + sub_results[0]['out_degree_B'] + sub_results[1]['out_degree_B']
+                            tmp_result['out_degree_C'] = d_CD + sub_results[1]['out_degree_C'] + sub_results[2]['out_degree_C']
+                            tmp_result['in_degree_A'] = sub_results[0]['in_degree_A'] + sub_results[2]['in_degree_A']
+                            tmp_result['in_degree_B'] = 1-d_BD + sub_results[0]['in_degree_B'] + sub_results[1]['in_degree_B']
+                            tmp_result['in_degree_C'] = 1-d_CD + sub_results[1]['in_degree_C'] + sub_results[2]['in_degree_C']
+                            tmp_result['links'].append(Link(self.A, divider))
+                            tmp_result['links'].append(Link(self.B, divider) if d_BD else Link(divider, self.B))
+                            tmp_result['links'].append(Link(self.C, divider) if d_CD else Link(divider, self.C))
+                        elif jet_point == self.B:
+                            tmp_result['out_degree_B'] = 1 + sub_results[0]['out_degree_B'] + sub_results[2]['out_degree_B']
+                            tmp_result['out_degree_C'] = d_BD + sub_results[0]['out_degree_C'] + sub_results[1]['out_degree_C']
+                            tmp_result['out_degree_A'] = d_CD + sub_results[1]['out_degree_A'] + sub_results[2]['out_degree_A']
+                            tmp_result['in_degree_B'] = sub_results[0]['in_degree_B'] + sub_results[2]['in_degree_B']
+                            tmp_result['in_degree_C'] = 1-d_BD + sub_results[0]['in_degree_C'] + sub_results[1]['in_degree_C']
+                            tmp_result['in_degree_A'] = 1-d_CD + sub_results[1]['in_degree_A'] + sub_results[2]['in_degree_A']
+                            tmp_result['links'].append(Link(self.B, divider))
+                            tmp_result['links'].append(Link(self.C, divider) if d_BD else Link(divider, self.C))
+                            tmp_result['links'].append(Link(self.A, divider) if d_CD else Link(divider, self.A))
+                        else:
+                            tmp_result['out_degree_C'] = 1 + sub_results[0]['out_degree_C'] + sub_results[2]['out_degree_C']
+                            tmp_result['out_degree_A'] = d_BD + sub_results[0]['out_degree_A'] + sub_results[1]['out_degree_A']
+                            tmp_result['out_degree_B'] = d_CD + sub_results[1]['out_degree_B'] + sub_results[2]['out_degree_B']
+                            tmp_result['in_degree_C'] = sub_results[0]['in_degree_C'] + sub_results[2]['in_degree_C']
+                            tmp_result['in_degree_A'] = 1-d_BD + sub_results[0]['in_degree_A'] + sub_results[1]['in_degree_A']
+                            tmp_result['in_degree_B'] = 1-d_CD + sub_results[1]['in_degree_B'] + sub_results[2]['in_degree_B']
+                            tmp_result['links'].append(Link(self.C, divider))
+                            tmp_result['links'].append(Link(self.A, divider) if d_BD else Link(divider, self.A))
+                            tmp_result['links'].append(Link(self.B, divider) if d_CD else Link(divider, self.B))
+
+                        in_degree_D = 1 + d_BD + d_CD + sub_results[0]['in_degree_C'] + sub_results[1]['in_degree_C'] + sub_results[2]['in_degree_A']
+
+                        tmp_result['key'] = max(max([sub_result['key'] for sub_result in sub_results]), 
+                                            tmp_result['in_degree_A'], tmp_result['in_degree_B'], tmp_result['in_degree_C'],
+                                            in_degree_D)
+
+                        if tmp_result['out_degree_A'] > 8 or tmp_result['out_degree_B'] > 8 or tmp_result['out_degree_C'] > 8:
+                            tmp_result['key'] = float('inf')
+
+                        if result == {} or tmp_result['key'] < result['key']:
+                            result = tmp_result
+        return result
+
+class Link(object):
+    """link from origin to target"""
+    def __init__(self, origin, target):
+        super(Link, self).__init__()
+        self.origin = origin
+        self.target = target
+
+    def __repr__(self):
+        return self.origin.__repr__() + '->' + self.target.__str__()
+
+    def __str__(self):
+        return self.origin.__str__() + '->' + self.target.__str__()
 
 
 if __name__ == '__main__':
@@ -201,8 +273,10 @@ if __name__ == '__main__':
     #         print triangle
     #     print
 
-    t = Triangle([Point(0,0), Point(1,2), Point(3,0), Point(1,1)])
-    print t
-    for triangle in t.divideIntoThreeTriangle(Point(1,1)):
-        print triangle
-    
+    t = Triangle([Point(0,0), Point(10,30), Point(30,0), Point(10,10), Point(20,10), 
+                  Point(5,10), Point(20,5)])
+    # for triangle in t.divideIntoThreeTriangle(Point(1,1)):
+    #     print triangle
+    # print 
+
+    print t.findInsideBalanceKeySolution()
