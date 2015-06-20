@@ -231,9 +231,9 @@ class Triangle(PointSet):
                             tmp_result['in_degree_A'] = sub_results[0]['in_degree_A'] + sub_results[2]['in_degree_A']
                             tmp_result['in_degree_B'] = 1-d_BD + sub_results[0]['in_degree_B'] + sub_results[1]['in_degree_B']
                             tmp_result['in_degree_C'] = 1-d_CD + sub_results[1]['in_degree_C'] + sub_results[2]['in_degree_C']
-                            tmp_result['links'].append(Link(self.A, divider))
-                            tmp_result['links'].append(Link(self.B, divider) if d_BD else Link(divider, self.B))
-                            tmp_result['links'].append(Link(self.C, divider) if d_CD else Link(divider, self.C))
+                            tmp_result['links'].append(Link(self.A, divider, jet_link=True, triangle=self))
+                            tmp_result['links'].append(Link(self.B, divider, 1-d_BD))
+                            tmp_result['links'].append(Link(self.C, divider, 1-d_CD))
                         elif jet_point == self.B:
                             tmp_result['out_degree_B'] = 1 + sub_results[0]['out_degree_B'] + sub_results[2]['out_degree_B']
                             tmp_result['out_degree_C'] = d_BD + sub_results[0]['out_degree_C'] + sub_results[1]['out_degree_C']
@@ -241,9 +241,9 @@ class Triangle(PointSet):
                             tmp_result['in_degree_B'] = sub_results[0]['in_degree_B'] + sub_results[2]['in_degree_B']
                             tmp_result['in_degree_C'] = 1-d_BD + sub_results[0]['in_degree_C'] + sub_results[1]['in_degree_C']
                             tmp_result['in_degree_A'] = 1-d_CD + sub_results[1]['in_degree_A'] + sub_results[2]['in_degree_A']
-                            tmp_result['links'].append(Link(self.B, divider))
-                            tmp_result['links'].append(Link(self.C, divider) if d_BD else Link(divider, self.C))
-                            tmp_result['links'].append(Link(self.A, divider) if d_CD else Link(divider, self.A))
+                            tmp_result['links'].append(Link(self.B, divider, jet_link=True, triangle=self))
+                            tmp_result['links'].append(Link(self.C, divider, 1-d_BD))
+                            tmp_result['links'].append(Link(self.A, divider, 1-d_CD))
                         else:
                             tmp_result['out_degree_C'] = 1 + sub_results[0]['out_degree_C'] + sub_results[2]['out_degree_C']
                             tmp_result['out_degree_A'] = d_BD + sub_results[0]['out_degree_A'] + sub_results[1]['out_degree_A']
@@ -251,9 +251,9 @@ class Triangle(PointSet):
                             tmp_result['in_degree_C'] = sub_results[0]['in_degree_C'] + sub_results[2]['in_degree_C']
                             tmp_result['in_degree_A'] = 1-d_BD + sub_results[0]['in_degree_A'] + sub_results[1]['in_degree_A']
                             tmp_result['in_degree_B'] = 1-d_CD + sub_results[1]['in_degree_B'] + sub_results[2]['in_degree_B']
-                            tmp_result['links'].append(Link(self.C, divider))
-                            tmp_result['links'].append(Link(self.A, divider) if d_BD else Link(divider, self.A))
-                            tmp_result['links'].append(Link(self.B, divider) if d_CD else Link(divider, self.B))
+                            tmp_result['links'].append(Link(self.C, divider, jet_link=True, triangle=self))
+                            tmp_result['links'].append(Link(self.A, divider, 1-d_BD))
+                            tmp_result['links'].append(Link(self.B, divider, 1-d_CD))
 
                         in_degree_D = 1 + d_BD + d_CD + sub_results[0]['in_degree_C'] + sub_results[1]['in_degree_C'] + sub_results[2]['in_degree_A']
 
@@ -264,22 +264,77 @@ class Triangle(PointSet):
                         if tmp_result['out_degree_A'] > 8 or tmp_result['out_degree_B'] > 8 or tmp_result['out_degree_C'] > 8:
                             tmp_result['key'] = float('inf')
 
+                        # test feasibility
+                        if not testFeasibility(tmp_result['links']):
+                            tmp_result['key'] = float('inf')
+
                         if result == {} or tmp_result['key'] < result['key']:
                             result = tmp_result
         return result
 
+def testFeasibility(links):
+    jet_links = [link for link in links if link.jet_link]
+    jet_links.reverse();
+
+    for jet_link in jet_links:
+        pass
+
+def drawOtherLinks(jet_link, jet_links, links, edges=[]):
+    BD = Link(jet_link.triangle.B, jet_link.target)
+    CD = Link(jet_link.triangle.C, jet_link.target)
+    BC = Link(jet_link.triangle.B, jet_link.triangle.C)
+    AB = Link(jet_link.origin, jet_link.triangle.B)
+    AC = Link(jet_link.origin, jet_link.triangle.C)
+    seq = [BD, CD, BC, AB, AC]
+    can_link = []
+    for edge in seq:
+        if edge in jet_links:
+            return edges + drawOtherLinks(edge, jet_links, links, edges)
+        else:
+            for link in links:
+                if link == edge:    # __eq__ (almost equal)
+                    edge = link
+                    break
+            # find triangle
+            # get all vertices
+            vertices = []
+            for ele in edges:
+                vertices.append(ele.origin)
+                vertices.append(ele.target)
+            vertices = {}.fromkeys(vertices).keys()
+
+            for ele in edges:
+                for vertex in vertices:
+                    if Link(ele.origin, vertex) in edges and Link(ele.target, vertex) in edges:
+                        # find a triangle
+                        if Triangle([ele.origin, ele.target, vertex].cover(edge.origin)):
+                            # origin inside an existing triangle
+                            raise NameError('Inside an existing field!')
+
+            # can link
+            can_link.append(edge)
+
+    return edges + can_link
+
+
 class Link(object):
     """link from origin to target"""
-    def __init__(self, origin, target):
+    def __init__(self, origin, target, reverse=False, jet_link=False, triangle=None):
         super(Link, self).__init__()
-        self.origin = origin
-        self.target = target
+        self.origin = origin if not reverse else target
+        self.target = target if not reverse else origin
+        self.jet_link = jet_link
+        self.triangle = triangle
 
     def __repr__(self):
         return self.origin.__repr__() + '->' + self.target.__str__()
 
     def __str__(self):
         return self.origin.__str__() + '->' + self.target.__str__()
+
+    def __eq__(self, other):
+        return ((self.origin == other.origin and self.target == other.target)
+                or (self.origin == other.target and self.target == other.origin))
 
 
 if __name__ == '__main__':
@@ -302,4 +357,6 @@ if __name__ == '__main__':
     #     print triangle
     # print 
 
-    print t.findInsideBalanceKeySolution()
+    # print {}.fromkeys([Point(0,0), Point(0,0)]).keys()
+
+    # print t.findInsideBalanceKeySolution()
