@@ -23,6 +23,9 @@ class Point(object):
     def __eq__(self, other):
         return (self.x == other.x) and (self.y == other.y)
 
+    def __hash__(self):
+        return hash(self.x) + hash(self.y)
+
 def crossProduct(p0, p1, p2):
     """return vector (p0->p1) cross (p0->p2)"""
     return (p1.x - p0.x) * (p2.y - p0.y) - (p2.x - p0.x) * (p1.y - p0.y)
@@ -114,6 +117,9 @@ class PointSet(object):
             new_partition.append(triangle)
         return new_partition
 
+    def findBalanceKeySolution(self):
+        pass
+
 
 class ConvexHull(PointSet):
     def __init__(self, point_list):
@@ -149,6 +155,9 @@ class ConvexHull(PointSet):
 
 class Triangle(PointSet):
     """a point set whose convex hull is a triangle (ABC), find balance-key solution here"""
+
+    result_map = {}
+    
     def __init__(self, point_list):
         super(Triangle, self).__init__(point_list)
         self.A = self.convex_hull[0]
@@ -156,12 +165,18 @@ class Triangle(PointSet):
         self.C = self.convex_hull[2]
 
     def __repr__(self):
-        return ('outer: ' + [self.A, self.B, self.C].__repr__() + '\n'
+        return ('\n' + 'outer: ' + [self.A, self.B, self.C].__repr__() + '\n'
                 + 'inner: ' + self.inner_points.__repr__())
 
     def __str__(self):
-        return ('outer: ' + [self.A, self.B, self.C].__str__() + '\n'
+        return ('\n' + 'outer: ' + [self.A, self.B, self.C].__str__() + '\n'
                 + 'inner: ' + self.inner_points.__str__())
+
+    def __eq__(self, other):
+        return (self.A == other.A and self.B == other.B and self.C == other.C)
+
+    def __hash__(self):
+        return self.A.__hash__() + self.B.__hash__() + self.C.__hash__()
 
     def addInnerPoints(self, new_point):
         if self.cover(new_point):
@@ -196,7 +211,15 @@ class Triangle(PointSet):
                     # traverse direction of CD
                     for d_CD in [0, 1]:     # d_CD == 1 means C->D
                         sub_triangles = self.divideIntoThreeTriangle(divider)
-                        sub_results = [triangle.findInsideBalanceKeySolution() for triangle in sub_triangles]
+                        sub_results = []
+                        for triangle in sub_triangles:
+                            if triangle.norm == 3:
+                                sub_results.append(triangle.findInsideBalanceKeySolution())
+                            elif triangle in Triangle.result_map:
+                                sub_results.append(Triangle.result_map[triangle])
+                            else:
+                                Triangle.result_map[triangle] = triangle.findInsideBalanceKeySolution()
+                                sub_results.append(Triangle.result_map[triangle])
                         tmp_result = {}
 
                         tmp_result['links'] = sub_results[0]['links'] + sub_results[1]['links'] + sub_results[2]['links']
@@ -274,7 +297,7 @@ if __name__ == '__main__':
     #     print
 
     t = Triangle([Point(0,0), Point(10,30), Point(30,0), Point(10,10), Point(20,10), 
-                  Point(5,10), Point(20,5)])
+                  Point(5,10), Point(20,5), Point(20,6), Point(21,4), Point(11,13), Point(13,3)])
     # for triangle in t.divideIntoThreeTriangle(Point(1,1)):
     #     print triangle
     # print 
