@@ -389,6 +389,9 @@ def drawOtherLinks(jet_link, jet_links, links, edges=[]):
                 vertices.append(ele.target)
             vertices = {}.fromkeys(vertices).keys()
 
+            if edge == Link(Point(20,4), Point(5,3)):
+                print edges + can_link
+                print 
             for ele in edges + can_link:
                 for vertex in vertices:
                     if Link(ele.origin, vertex) in edges + can_link and Link(ele.target, vertex) in edges + can_link:
