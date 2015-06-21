@@ -389,9 +389,6 @@ def drawOtherLinks(jet_link, jet_links, links, edges=[]):
                 vertices.append(ele.target)
             vertices = {}.fromkeys(vertices).keys()
 
-            if edge == Link(Point(20,4), Point(5,3)):
-                print edges + can_link
-                print 
             for ele in edges + can_link:
                 for vertex in vertices:
                     if Link(ele.origin, vertex) in edges + can_link and Link(ele.target, vertex) in edges + can_link:
@@ -443,15 +440,22 @@ if __name__ == '__main__':
     #         print triangle
     #     print
 
-    # t = Triangle([Point(0,0), Point(10,30), Point(30,0), Point(10,10), Point(20,10), 
-    #               Point(5,10), Point(20,5), Point(20,6), Point(21,4), Point(11,13), Point(13,3)])
-    t = Triangle([Point(0,0), Point(10,30), Point(30,0), Point(10,10), Point(5,3), Point(20,4)])
+    t = Triangle([Point(0,0), Point(10,30), Point(30,0), Point(20,10), 
+                  Point(5,10), Point(20,5), Point(21,4), Point(11,13), Point(13,3)])
+    # t = Triangle([Point(0,0), Point(10,30), Point(30,0), Point(10,10), Point(5,3), Point(20,4)])
+    # t = Triangle([Point(0,0), Point(10,30), Point(30,0), Point(10,10), Point(5,3)])
 
     # for triangle in t.divideIntoThreeTriangle(Point(1,1)):
     #     print triangle
-    # print 
+    # print t.cover(Point(1,1))
 
     # l = [Link(Point(0,0), Point(0,1))]
     # print l.index(Link(Point(0,1), Point(0,0)))
 
-    print t.findInsideBalanceKeySolution()
+    result = t.findInsideBalanceKeySolution()
+    print result
+    print 
+    i = 0
+    for link in result['links']:
+        print i, ': ', link
+        i += 1
