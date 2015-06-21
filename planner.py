@@ -255,20 +255,10 @@ class Triangle(PointSet):
                             sub_triangles = self.divideIntoThreeTriangle(divider)
                             sub_results = []
                             for triangle in sub_triangles:
-                                index = sub_triangles.index(triangle)
-                                if index == 0:
-                                    # ABD
-                                    key = (triangle, frozenset([outer_links[0], BD, AD]))
-                                elif index == 1:
-                                    # BCD
-                                    key = (triangle, frozenset([outer_links[1], CD, BD]))
-                                else:
-                                    # DCA
-                                    key = (triangle, frozenset([CD, outer_links[2], AD]))
                                 if triangle.norm == 3:
                                     sub_results.append(triangle.findInsideBalanceKeySolution(depth=depth+1))
-                                elif key in Triangle.result_map:
-                                    sub_results.append(Triangle.result_map[key])
+                                elif triangle in Triangle.result_map:
+                                    sub_results.append(Triangle.result_map[triangle])
                                 else:
                                     index = sub_triangles.index(triangle)
                                     if index == 0:
@@ -277,7 +267,7 @@ class Triangle(PointSet):
                                         tmp = triangle.findInsideBalanceKeySolution([outer_links[1], CD, BD], depth=depth+1)
                                     else:
                                         tmp = triangle.findInsideBalanceKeySolution([CD, outer_links[2], AD], depth=depth+1)
-                                    Triangle.result_map[(triangle, frozenset(outer_links))] = tmp
+                                    Triangle.result_map[triangle] = tmp
                                     sub_results.append(tmp)
                             tmp_result = {}
 
@@ -394,14 +384,14 @@ def drawOtherLinks(jet_link, jet_links, links, edges=[]):
             # find triangle
             # get all vertices
             vertices = []
-            for ele in edges:
+            for ele in edges + can_link:
                 vertices.append(ele.origin)
                 vertices.append(ele.target)
             vertices = {}.fromkeys(vertices).keys()
 
-            for ele in edges:
+            for ele in edges + can_link:
                 for vertex in vertices:
-                    if Link(ele.origin, vertex) in edges and Link(ele.target, vertex) in edges:
+                    if Link(ele.origin, vertex) in edges + can_link and Link(ele.target, vertex) in edges + can_link:
                         # find a triangle
                         if Triangle([ele.origin, ele.target, vertex]).cover(edge.origin):
                             # origin inside an existing triangle
