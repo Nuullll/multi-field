@@ -3,6 +3,7 @@
 
 from copy import deepcopy
 from itertools import product
+from random import shuffle
 
 class Point(object):
     """Point (x, y)"""
@@ -339,6 +340,7 @@ class Triangle(PointSet):
 
 def testFeasibility(links):
     jet_links = [link for link in links if link.jet_link]
+    jet_links.sort()
 
     try:
         link_seq = drawOtherLinks(jet_links[0], jet_links, links)
@@ -368,35 +370,34 @@ def drawOtherLinks(jet_link, jet_links, links, edges=[]):
         # print jet_links
         # print edge
         # print
+        for link in links:
+            if edge == link:
+                edge = link
+        # find triangle
+        # get all vertices
+        vertices = []
+        for ele in edges + can_link:
+            vertices.append(ele.origin)
+            vertices.append(ele.target)
+        vertices = {}.fromkeys(vertices).keys()
+
+        for ele in edges + can_link:
+            for vertex in vertices:
+                if Link(ele.origin, vertex) in edges + can_link and Link(ele.target, vertex) in edges + can_link:
+                    # find a triangle
+                    if Triangle([ele.origin, ele.target, vertex]).cover(edge.origin):
+                        # origin inside an existing triangle
+                        raise NameError('Inside an existing field!')
+
         if edge in jet_links:
             # print 'wtf'
-            return (drawOtherLinks(jet_links[jet_links.index(edge)],
-                                     jet_links, links, edges + can_link))
+            return (drawOtherLinks(edge, jet_links, links, edges + can_link))
         else:
             # print links
             # for jet_link in jet_links:
             #     print jet_link.triangle
             # print edge
             # print 
-            for link in links:
-                if edge == link:
-                    edge = link
-            # find triangle
-            # get all vertices
-            vertices = []
-            for ele in edges + can_link:
-                vertices.append(ele.origin)
-                vertices.append(ele.target)
-            vertices = {}.fromkeys(vertices).keys()
-
-            for ele in edges + can_link:
-                for vertex in vertices:
-                    if Link(ele.origin, vertex) in edges + can_link and Link(ele.target, vertex) in edges + can_link:
-                        # find a triangle
-                        if Triangle([ele.origin, ele.target, vertex]).cover(edge.origin):
-                            # origin inside an existing triangle
-                            raise NameError('Inside an existing field!')
-
             # can link
             can_link.append(edge)
     jet_links.remove(jet_link)
@@ -424,6 +425,16 @@ class Link(object):
     def __eq__(self, other):
         return ((self.origin == other.origin and self.target == other.target)
                 or (self.origin == other.target and self.target == other.origin))
+
+    def __lt__(self, other):
+        if self.jet_link and other.jet_link:
+            if other.triangle.cover(self.origin):
+                return -1
+            elif self.triangle.cover(other.origin):
+                return 1
+            else:
+                return 0
+        return 0
 
 
 if __name__ == '__main__':
