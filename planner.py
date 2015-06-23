@@ -151,12 +151,16 @@ class PointSet(object):
                             # print directed_edge
                             # print common_edge
                             outer_links_set = genOuterLinksSet(triangle.getOuterIndex(directed_edge), directed_edge, triangle)
-                            init_out = {directed_edge.origin:result['out_degree_'+str_dict[directed_edge.origin]]-1}
-                            init_in = {directed_edge.target:result['in_degree_'+str_dict[directed_edge.target]]-1} 
+                            init_out = {directed_edge.origin:max(0,result['out_degree_'+str_dict[directed_edge.origin]]-1)}
+                            init_in = {directed_edge.target:max(0,result['in_degree_'+str_dict[directed_edge.target]]-1)} 
                             break
+                    # if outer_links_set is not None:
+                    #     for ele in outer_links_set:
+                    #         print ele
                     triangle_result_map[triangle] = triangle.findBalanceKeySolution(outer_links_set=outer_links_set,
                                                                                     init_out=init_out, init_in=init_in)
                 # print triangle_result_map
+                # raw_input()
 
             inner_max_key = max([value['key'] for value in triangle_result_map.values()])
             outer_max_key_dict = dict([(vertex, 0) for vertex in self.convex_hull])
@@ -177,7 +181,7 @@ class PointSet(object):
                         # whether link is bound of convex hull
                         i1 = self.convex_hull.point_list.index(link.origin)
                         i2 = self.convex_hull.point_list.index(link.target)
-                        if not((abs(i1 - i2) == 1) or (i1 + i2 == self.convex_hull.norm - 1)):
+                        if not((abs(i1 - i2) == 1) or (abs(i1 - i2) == self.convex_hull.norm - 1)):
                             outer_max_key_dict[link.target] -= 0.5
                             outer_out_degree_dict[link.origin] -= 0.5
             max_key = max(inner_max_key, max(outer_max_key_dict.values()))
@@ -323,17 +327,20 @@ class Triangle(PointSet):
         """
         if outer_links_set == None:
             outer_links_set = product([Link(self.A, self.B), Link(self.A, self.B, reverse=True)],
-                                      [Link(self.B, self.C), Link(self.B, self.C, reverse=True)],
+                                      [Link(self.B, self.C)],
                                       [Link(self.C, self.A), Link(self.C, self.A, reverse=True)])
         result = {}
         if self.norm == 3:
-            result = {'key':0, 'links':[],
+            result = {'key':1, 'links':[],
                     'out_degree_A':0, 'out_degree_B':0, 'out_degree_C':0,
                     'in_degree_A':0, 'in_degree_B':0, 'in_degree_C':0}
             # if depth == 0:
             result['links'] = testFeasibility(list(iter(outer_links_set).next()))[1]
             return result
+        # print self
         for outer_links in outer_links_set:
+            # print outer_links
+            # raw_input()
             # traverse all possible divide point
             for divider in self.inner_points:    # mark divider as 'D'
                 # traverse jet link in [A->D, B->D, C->D]
@@ -419,6 +426,8 @@ class Triangle(PointSet):
                                 # raw_input()
                                 actual_out_degrees[str_dict[link.origin]] += 1
                                 actual_in_degrees[str_dict[link.target]] += 1
+                                # print actual_out_degrees
+                                # print actual_in_degrees
 
                             for point in [self.A, self.B, self.C]:
                                 if point in init_out:
@@ -427,6 +436,7 @@ class Triangle(PointSet):
                                     actual_in_degrees[str_dict[point]] += init_in[point]
 
                             if depth == 0:
+                                # print self
                                 for p in str_dict.values():
                                     tmp_result['out_degree_'+p] = actual_out_degrees[p]
                                     tmp_result['in_degree_'+p] = actual_in_degrees[p]
@@ -540,16 +550,15 @@ class Link(object):
 if __name__ == '__main__':
     # s = PointSet([Point(0,0), Point(30,0), Point(40,30), Point(20,50), Point(10,20), Point(20,10),
     #               Point(8,7), Point(15,9), Point(10,30), Point(10,1), Point(28,28)])
-    s = PointSet([Point(40009746,116325990), Point(40009195,116326570), Point(40009154,116327023), 
-                  Point(40008720,116325757), Point(40008616,116325533), Point(40008519,116326469), 
-                  Point(40008455,116325360), Point(40008396,116325855), Point(40008393,116326263), 
-                  Point(40008239,116325485), Point(40008224,116326805), Point(40008151,116327164), 
-                  Point(40008131,116326011), Point(40008129,116326349), Point(40008102,116326605), 
-                  Point(40008082,116325288), Point(40008077,116324930), Point(40008034,116325578), 
-                  Point(40008006,116326991), Point(40008008,116327477), Point(40007854,116324331), 
-                  Point(40007761,116324901)])
-    # t = Triangle([Point(0,0), Point(10,30), Point(30,0), Point(20,10), Point(8,7), Point(15,9), Point(10,1),
-    #               Point(5,10), Point(20,5), Point(21,4), Point(11,13), Point(13,3)])
+    # s = PointSet([Point(40009746,116325990), Point(40009195,116326570), Point(40009154,116327023), 
+    #               Point(40008720,116325757), Point(40008616,116325533), Point(40008519,116326469), 
+    #               Point(40008455,116325360), Point(40008396,116325855), Point(40008393,116326263), 
+    #               Point(40008239,116325485), Point(40008224,116326805), Point(40008151,116327164), 
+    #               Point(40008131,116326011), Point(40008129,116326349), Point(40008102,116326605), 
+    #               Point(40008082,116325288), Point(40008077,116324930), Point(40008034,116325578), 
+    #               Point(40008006,116326991), Point(40008008,116327477), Point(40007854,116324331), 
+    #               Point(40007761,116324901)])
+    s = PointSet([Point(0,0), Point(4,4), Point(4,0), Point(0,4), Point(1,2)])
     solution = s.findBalanceKeySolution()
     print solution
     print 
@@ -557,15 +566,12 @@ if __name__ == '__main__':
     for link in solution['links']:
         print i, ': ', link
         i += 1
+    # t = Triangle([Point(0,0), Point(10,30), Point(30,0), Point(20,10), Point(8,7), Point(15,9), Point(10,1),
+    #               Point(5,10), Point(20,5), Point(21,4), Point(11,13), Point(13,3)])
     # t = Triangle([Point(0,0), Point(10,30), Point(30,0), Point(10,10), Point(5,3), Point(20,4)])
     # t = Triangle([Point(0,0), Point(10,30), Point(30,0), Point(10,10), Point(5,10)])
-    # for triangle in t.divideIntoThreeTriangle(Point(1,1)):
-    #     print triangle
-    # print t.cover(Point(1,1))
-
-    # l = [Link(Point(0,0), Point(0,1))]
-    # print l.index(Link(Point(0,1), Point(0,0)))
-
+    # t = Triangle([Point(0,0), Point(4,0), Point(0,4), Point(1,2)])
+    # print t
     # result = t.findBalanceKeySolution(init_out={Point(0,0):4})
     # print result
     # print 
