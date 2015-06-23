@@ -4,6 +4,7 @@
 from copy import deepcopy
 from itertools import product
 from random import shuffle
+from operator import itemgetter
 
 class Point(object):
     """Point (x, y)"""
@@ -126,9 +127,79 @@ class PointSet(object):
 
     def findBalanceKeySolution(self):
         partitions = [self.divide(partition) for partition in self.convex_hull.triangulation()]
+        solution = {}
         for partition in partitions:
-            pass
+            # print partition
+            # raw_input()
+            triangle_result_map = {}
+            for triangle in partition:
+                # print triangle
+                # raw_input()
+                if triangle not in triangle_result_map:
+                    outer_links_set = None
+                    init_out = {}
+                    init_in = {}
+                    for tri in triangle_result_map:
+                        result = triangle_result_map[tri]
+                        if tri.isNeighbour(triangle):
+                            str_dict = {tri.A:'A', tri.B:'B', tri.C:'C'}
+                            common_edge = tri.commonEdge(triangle)
+                            # print common_edge
+                            # print result['links']
+                            # raw_input()
+                            directed_edge = result['links'][result['links'].index(common_edge)]
+                            # print directed_edge
+                            # print common_edge
+                            outer_links_set = genOuterLinksSet(triangle.getOuterIndex(directed_edge), directed_edge, triangle)
+                            init_out = {directed_edge.origin:result['out_degree_'+str_dict[directed_edge.origin]]-1}
+                            init_in = {directed_edge.target:result['in_degree_'+str_dict[directed_edge.target]]-1} 
+                            break
+                    triangle_result_map[triangle] = triangle.findBalanceKeySolution(outer_links_set=outer_links_set,
+                                                                                    init_out=init_out, init_in=init_in)
+                # print triangle_result_map
 
+            inner_max_key = max([value['key'] for value in triangle_result_map.values()])
+            outer_max_key_dict = dict([(vertex, 0) for vertex in self.convex_hull])
+            outer_out_degree_dict = dict([(vertex, 0) for vertex in self.convex_hull])
+            tmp_links = []
+            for triangle, result in triangle_result_map.items():
+                tmp_links += result['links']
+                # str_dict = {triangle.A:'A', triangle.B:'B', triangle.C:'C'}
+                outer_max_key_dict[triangle.A] += result['in_degree_A']
+                outer_max_key_dict[triangle.B] += result['in_degree_B']
+                outer_max_key_dict[triangle.C] += result['in_degree_C']
+                outer_out_degree_dict[triangle.A] += result['out_degree_A']
+                outer_out_degree_dict[triangle.B] += result['out_degree_B']
+                outer_out_degree_dict[triangle.C] += result['out_degree_C']
+                for link in result['links']:
+                    if (link.origin in [triangle.A, triangle.B, triangle.C] and
+                        link.target in [triangle.A, triangle.B, triangle.C]):
+                        # whether link is bound of convex hull
+                        i1 = self.convex_hull.point_list.index(link.origin)
+                        i2 = self.convex_hull.point_list.index(link.target)
+                        if not((abs(i1 - i2) == 1) or (i1 + i2 == self.convex_hull.norm - 1)):
+                            outer_max_key_dict[link.target] -= 0.5
+                            outer_out_degree_dict[link.origin] -= 0.5
+            max_key = max(inner_max_key, max(outer_max_key_dict.values()))
+            max_out_degree = max(outer_out_degree_dict.values())
+            links = []
+            for link in tmp_links:
+                if link not in links:
+                    links.append(link)
+            if max_out_degree > 8:
+                max_key = float('inf')
+            if solution == {} or max_key <= solution['max_key']:
+                solution = {'max_key':max_key, 'max_out_degree':max_out_degree, 'links':links}
+        return solution
+
+
+def genOuterLinksSet(index, link, triangle):
+    sets = [[Link(triangle.A, triangle.B), Link(triangle.A, triangle.B, reverse=True)],
+            [Link(triangle.B, triangle.C), Link(triangle.B, triangle.C, reverse=True)],
+            [Link(triangle.C, triangle.A), Link(triangle.C, triangle.A, reverse=True)]]
+    sets[index] = [link]
+    # print link
+    return product(sets[0], sets[1], sets[2])
 
 
 class ConvexHull(PointSet):
@@ -219,6 +290,24 @@ class Triangle(PointSet):
         else:
             return self.B
 
+    def isNeighbour(self, other):
+        return len(set([self.A, self.B, self.C]).intersection(set([other.A, other.B, other.C]))) == 2
+
+    def commonEdge(self, other):
+        intersection = list(set([self.A, self.B, self.C]).intersection(set([other.A, other.B, other.C])))
+        return Link(intersection[0], intersection[1])
+
+    def getOuterIndex(self, link):
+        """return index of link in [AB, BC, CA]"""
+        if link == Link(self.A, self.B):
+            return 0
+        elif link == Link(self.B, self.C):
+            return 1
+        elif link == Link(self.C, self.A):
+            return 2
+        else:
+            return None
+
     def divideIntoThreeTriangle(self, divider):
         ABD = Triangle([self.A, self.B, divider], custom=True)
         BCD = Triangle([self.B, self.C, divider], custom=True)
@@ -238,9 +327,12 @@ class Triangle(PointSet):
                                       [Link(self.C, self.A), Link(self.C, self.A, reverse=True)])
         result = {}
         if self.norm == 3:
-            return {'key':0, 'links':[],
+            result = {'key':0, 'links':[],
                     'out_degree_A':0, 'out_degree_B':0, 'out_degree_C':0,
                     'in_degree_A':0, 'in_degree_B':0, 'in_degree_C':0}
+            # if depth == 0:
+            result['links'] = testFeasibility(list(iter(outer_links_set).next()))[1]
+            return result
         for outer_links in outer_links_set:
             # traverse all possible divide point
             for divider in self.inner_points:    # mark divider as 'D'
@@ -273,6 +365,9 @@ class Triangle(PointSet):
                                 else:
                                     index = sub_triangles.index(triangle)
                                     if index == 0:
+                                        # print [outer_links[0], BD, AD]
+                                        # print triangle
+                                        # raw_input()
                                         tmp = triangle.findBalanceKeySolution([[outer_links[0], BD, AD]], depth=depth+1, init_out=init_out, init_in=init_in)
                                     elif index == 1:
                                         tmp = triangle.findBalanceKeySolution([[outer_links[1], CD, BD]], depth=depth+1, init_out=init_out, init_in=init_in)
@@ -318,6 +413,10 @@ class Triangle(PointSet):
                             actual_out_degrees = {'A':tmp_result['out_degree_A'], 'B':tmp_result['out_degree_B'], 'C':tmp_result['out_degree_C']}
                             actual_in_degrees = {'A':tmp_result['in_degree_A'], 'B':tmp_result['in_degree_B'], 'C':tmp_result['in_degree_C']}
                             for link in outer_links:
+                                # print self.A, self.B, self.C
+                                # print outer_links
+                                # print link
+                                # raw_input()
                                 actual_out_degrees[str_dict[link.origin]] += 1
                                 actual_in_degrees[str_dict[link.target]] += 1
 
@@ -357,8 +456,8 @@ def testFeasibility(links):
         link_seq = drawOtherLinks(jet_links[0], jet_links, links)
     except NameError:
         return (False, [])
-    # except ValueError:
-    #     return (True, links)
+    except IndexError:
+        return (True, links)
     return (True, link_seq)
 
 def drawOtherLinks(jet_link, jet_links, links, edges=[]):
@@ -434,16 +533,22 @@ class Link(object):
                 return 0
         return 0
 
+    def __hash__(self):
+        return self.origin.__hash__() + self.target.__hash__()
+
 
 if __name__ == '__main__':
     s = PointSet([Point(0,0), Point(30,0), Point(40,30), Point(20,50), Point(10,20), Point(20,10),
-                  Point(8,7), Point(15,9), Point(10,30), Point(10,1)])
+                  Point(8,7), Point(15,9), Point(10,30), Point(10,1), Point(28,28)])
     # t = Triangle([Point(0,0), Point(10,30), Point(30,0), Point(20,10), Point(8,7), Point(15,9), Point(10,1),
     #               Point(5,10), Point(20,5), Point(21,4), Point(11,13), Point(13,3)])
-    for partition in s.convex_hull.triangulation():
-        print partition
-        for i in range(len(partition)-1):
-            print partition[i].isNeighbour(partition[i+1])
+    solution = s.findBalanceKeySolution()
+    print solution
+    print 
+    i = 0
+    for link in solution['links']:
+        print i, ': ', link
+        i += 1
     # t = Triangle([Point(0,0), Point(10,30), Point(30,0), Point(10,10), Point(5,3), Point(20,4)])
     # t = Triangle([Point(0,0), Point(10,30), Point(30,0), Point(10,10), Point(5,10)])
     # for triangle in t.divideIntoThreeTriangle(Point(1,1)):
