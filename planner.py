@@ -213,19 +213,17 @@ class Triangle(PointSet):
         DCA = Triangle([divider, self.C, self.A], custom=True)
         return self.divide([ABD, BCD, DCA])
         
-    def findInsideBalanceKeySolution(self, outer_links=None, depth=0):
+    def findBalanceKeySolution(self, outer_links_set=None, depth=0):
         """return a map
         'key': min(max(degree_in) for all vertices) for all partition, 
         'links'
         'out_degree_A', 'out_degree_B', 'out_degree_C'
         'in_degree_A', 'in_degree_B', 'in_degree_C'
         """
-        if outer_links == None:
+        if outer_links_set == None:
             outer_links_set = product([Link(self.A, self.B), Link(self.A, self.B, reverse=True)],
                                       [Link(self.B, self.C), Link(self.B, self.C, reverse=True)],
                                       [Link(self.C, self.A), Link(self.C, self.A, reverse=True)])
-        else:
-            outer_links_set = [outer_links]
         result = {}
         if self.norm == 3:
             return {'key':0, 'links':[],
@@ -257,17 +255,17 @@ class Triangle(PointSet):
                             sub_results = []
                             for triangle in sub_triangles:
                                 if triangle.norm == 3:
-                                    sub_results.append(triangle.findInsideBalanceKeySolution(depth=depth+1))
+                                    sub_results.append(triangle.findBalanceKeySolution(depth=depth+1))
                                 elif triangle in Triangle.result_map:
                                     sub_results.append(Triangle.result_map[triangle])
                                 else:
                                     index = sub_triangles.index(triangle)
                                     if index == 0:
-                                        tmp = triangle.findInsideBalanceKeySolution([outer_links[0], BD, AD], depth=depth+1)
+                                        tmp = triangle.findBalanceKeySolution([[outer_links[0], BD, AD]], depth=depth+1)
                                     elif index == 1:
-                                        tmp = triangle.findInsideBalanceKeySolution([outer_links[1], CD, BD], depth=depth+1)
+                                        tmp = triangle.findBalanceKeySolution([[outer_links[1], CD, BD]], depth=depth+1)
                                     else:
-                                        tmp = triangle.findInsideBalanceKeySolution([CD, outer_links[2], AD], depth=depth+1)
+                                        tmp = triangle.findBalanceKeySolution([[CD, outer_links[2], AD]], depth=depth+1)
                                     Triangle.result_map[triangle] = tmp
                                     sub_results.append(tmp)
                             tmp_result = {}
@@ -476,7 +474,7 @@ if __name__ == '__main__':
     # l = [Link(Point(0,0), Point(0,1))]
     # print l.index(Link(Point(0,1), Point(0,0)))
 
-    result = t.findInsideBalanceKeySolution()
+    result = t.findBalanceKeySolution()
     print result
     print 
     i = 0
