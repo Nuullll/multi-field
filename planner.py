@@ -302,11 +302,6 @@ class Triangle(PointSet):
                             in_degree_D = 1 + d_BD + d_CD + sub_results[0]['in_degree_C'] + sub_results[1]['in_degree_C'] + sub_results[2]['in_degree_A']
                             if depth == 0:
                                 tmp_result['in_degree_D'] = in_degree_D
-                                # print divider, jet_point, d_BD, d_CD
-                                # print sub_results
-                                # raw_input()
-                            # if self == Triangle([Point(0,0), Point(30,0), Point(10,30)]):
-                            #     print tmp_result
                             str_dict = {self.A:'A', self.B:'B', self.C:'C'}
                             actual_out_degrees = {'A':tmp_result['out_degree_A'], 'B':tmp_result['out_degree_B'], 'C':tmp_result['out_degree_C']}
                             actual_in_degrees = {'A':tmp_result['in_degree_A'], 'B':tmp_result['in_degree_B'], 'C':tmp_result['in_degree_C']}
@@ -314,7 +309,6 @@ class Triangle(PointSet):
                                 actual_out_degrees[str_dict[link.origin]] += 1
                                 actual_in_degrees[str_dict[link.target]] += 1
                             if depth == 0:
-                                # print tmp_result['links']
                                 for p in str_dict.values():
                                     tmp_result['out_degree_'+p] = actual_out_degrees[p]
                                     tmp_result['in_degree_'+p] = actual_in_degrees[p]
@@ -325,11 +319,6 @@ class Triangle(PointSet):
                             if max(actual_out_degrees.values()) > 8:
                                 tmp_result['key'] = float('inf')
 
-
-                            # print 'wtf'
-                            # print tmp_result['links']
-                            # print outer_links
-
                             # test feasibility
                             test_result = testFeasibility(tmp_result['links'] + list(outer_links))
                             if not test_result[0]:
@@ -339,15 +328,6 @@ class Triangle(PointSet):
 
                             if result == {} or tmp_result['key'] <= result['key']:
                                 result = tmp_result
-
-                            # print 'depth:', depth
-                            # print self.A, self.B, self.C
-                            # print outer_links
-                            # print tmp_result
-                            # print in_degree_D
-                            # print actual_out_degrees
-                            # print actual_in_degrees
-                            # raw_input()
         return result
 
 def testFeasibility(links):
@@ -374,14 +354,7 @@ def drawOtherLinks(jet_link, jet_links, links, edges=[]):
     AC = Link(A, C)
     seq = [edge for edge in [BD, CD, BC, AB, AC] if edge not in edges]
     can_link = []
-    # print 'jet_links: ', jet_links
-    # print 'links: ', links
-    # print 'edges: ', edges
-    # print 'seq: ', seq
     for edge in seq:
-        # print jet_links
-        # print edge
-        # print
         for link in links:
             if edge == link:
                 edge = link
@@ -402,14 +375,8 @@ def drawOtherLinks(jet_link, jet_links, links, edges=[]):
                         raise NameError('Inside an existing field!')
 
         if edge in jet_links:
-            # print 'wtf'
             return (drawOtherLinks(edge, jet_links, links, edges + can_link))
         else:
-            # print links
-            # for jet_link in jet_links:
-            #     print jet_link.triangle
-            # print edge
-            # print 
             # can link
             can_link.append(edge)
     jet_links.remove(jet_link)
@@ -450,19 +417,6 @@ class Link(object):
 
 
 if __name__ == '__main__':
-    # s = PointSet([Point(0,0), Point(0,1), Point(1,1), Point(1.2,0.2), Point(2,0), Point(0.5,-0.5), Point(1,-1)])
-    # print s.convex_hull
-    # print s.inner_points
-    # print s.cover(Point(0.1,0.1))
-
-    # ch = s.convex_hull
-    # partitions = ch.triangulation()
-    # for partition in partitions:
-    #     # for element in partition:
-    #     for triangle in s.divide(partition):
-    #         print triangle
-    #     print
-
     t = Triangle([Point(0,0), Point(10,30), Point(30,0), Point(20,10), Point(8,7), Point(15,9), Point(10,1),
                   Point(5,10), Point(20,5), Point(21,4), Point(11,13), Point(13,3)])
     # t = Triangle([Point(0,0), Point(10,30), Point(30,0), Point(10,10), Point(5,3), Point(20,4)])
