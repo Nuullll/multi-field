@@ -187,27 +187,27 @@ ingress多重控制场优化模型
 
 ![catalan](catalan.png)
 
-### 动态规划寻找最优解
+### 递归寻找最优解
 
-**决策变量**：衡量`key`的平均化，优化使得`max(key[i])`取得最小值。其中`i`表示第`i`个顶点。
+**决策变量**：衡量`key`的平均化，优化使得`max(key[i])`取得**最小值**。其中`i`表示第`i`个顶点，根据游戏规则，`key`等价于**顶点入度**。
 
+#### 凸包为三角形的点集
 
+![ABC](image2.jpg)
 
+如图，对于完美划分`ABC`，定义：
 
+    f（A,B,C,Ai,Ao,Bi,Bo,Ci,Co）=m
+    
+式子中`m`表示三角形`ABC`内部顶点以及点`A,B,C`各点入度的**最大值**，其中计算各点入度时**不计外边界`AB,BC,CA`对出入度的贡献**，`Ai，Ao，Bi，Bo，Ci，Co`分别为`A,B,C`的入度和出度。
 
+定义`dAiAk`：
 
-
-
-
-
-1. 首先对一个三角形，寻找完美连接方案
-
-对于完美划分ABC，定义：
-f（A,B,C,Ai,Ao,Bi,Bo,Ci,Co）=m
-式子中m表示内部顶点的最大入度，Ai，Ao，Bi，Bo，Ci，Co分别为A,B,C的入度和出度。 
-定义dAiAk，当AiAk为Ai入射Ak时，值为1，Ak入射Ai时，值为0。
-对于三角形ABC中的其中一个内点D
-有递归式：
+    + `dAiAk = 1`表示有向边`AiAk`的方向为`Ai`指向`Ak`
+    
+    + `dAiAk = 0`表示有向边`AiAk`的方向为`Ak`指向`Ai`
+    
+对于三角形ABC中的其中一个内点`D`，有递归式：
 
     f(A,B,C,Ai,Ao,Bi,Bo,Ci,Co,dAB,dBC,dCA)=max{ Ai+dCA+dBA;
                                                 Ci+dAC+dBC;
@@ -217,16 +217,19 @@ f（A,B,C,Ai,Ao,Bi,Bo,Ci,Co）=m
                                                 f(A,B,D,Ai3,Ao3,Bi3,Bo3,Di3,Do3,dAB,dBD,dDA);
                                                 Di1+Di2+Di3+dAD+dBD+dCD;
                                                 }
+
+**状态转移方程**:
+
     Ai=Ai2+Ai3+dBA+dDA+dCA+init_in[A];
     Ao=Ao2+Ao3+dAB+dAD+dAC+init_out[A];
     Bi=Bi1+Bi3+dBA+dBD+dBC+init_in[B];
     Bo=Bo1+Bo3+dBA+dBD+dBC+init_out[B];
     Ci=Ci1+Ci2+dBC+dDC+dAC+init_in[C];
     Co=Co1+Co2+dCB+dCD+dCA+init_out[C];
+    
+其中`init_in, init_out`是三角形`ABC`外部对`ABC`局部带来的初始条件。
 
-在三角形ABC中，对其中每一个顶点，用上式求出m，最终求出最小m的所有解，即为三角形ABC中的所有最佳完美连接方案。
-
-
+在三角形ABC中，对其中每一个顶点，用上式求出`m`，并保存最小`m`的所有解(局部最优解不唯一，必须全部考虑才能保证达到全局最优解)，即为三角形`ABC`中的所有最佳(`key`平均化)完美连接方案。
 
 2. 对于凸包，寻找完美连接方案。
 
