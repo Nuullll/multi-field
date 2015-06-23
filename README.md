@@ -69,17 +69,17 @@ ingress多重控制场优化模型
 
 ![multi_field](mfield.jpg)
 
-    + 图中共有4个三角形, 在ingress中, 也可以实现构建4个field的link连法.
++ 图中共有4个三角形, 在ingress中, 也可以实现构建4个field的link连法.
 
 ![mfield1](mfield1.jpg)
 
-    + 先连成图示形状, 最后连接AC, 则根据上一条中的规则4, 仅能形成3个field: ABD, BCD 和 ABC.
++ 先连成图示形状, 最后连接AC, 则根据上一条中的规则4, 仅能形成3个field: ABD, BCD 和 ABC.
 
 ![mfield2](mfield2.jpg) 
 
-    + 若连成此图形状, 最后连接AD(A->D, 因为D此时已处在field ABC中, 不能作为link起点), 则将形成4个field, 达到经验最大化目的.
++ 若连成此图形状, 最后连接AD(A->D, 因为D此时已处在field ABC中, 不能作为link起点), 则将形成4个field, 达到经验最大化目的.
 
-    + 上述情况中, 较小的field叠在较大的field之上, 这种field称为多重field.
++ 上述情况中, 较小的field叠在较大的field之上, 这种field称为多重field.
 
 
 ## 课题目标
