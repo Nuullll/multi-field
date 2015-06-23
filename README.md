@@ -1144,7 +1144,7 @@ class Link(object):
 
 [2] jpeterbaker/maxfield. https://github.com/jpeterbaker/maxfield , visited on 2015/4/7.
 
-[3] Yvinec, Mariette. "2D triangulations." CGAL Editorial Board, editor, CGAL User and Reference Manual 3 (2007).
+[3] Yvinec, Mariette. "2D triangulations." *CGAL Editorial Board, editor, CGAL User and Reference Manual 3* (2007).
 
 [4] http://www.csie.ntnu.edu.tw/~u91029/ConvexHull.html#4 , visited on 2014/6
 
