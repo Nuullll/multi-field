@@ -14,10 +14,10 @@ class Point(object):
         self.y = y
 
     def __repr__(self):
-        return '(%0.1f, %0.1f)' % (self.x, self.y)
+        return '(%0.0f, %0.0f)' % (self.x, self.y)
 
     def __str__(self):
-        return '(%0.1f, %0.1f)' % (self.x, self.y)
+        return '(%0.0f, %0.0f)' % (self.x, self.y)
 
     def __lt__(self, other):
         return self.x < other.x or (self.x == other.x and self.y < other.y)
