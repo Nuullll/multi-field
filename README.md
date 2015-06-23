@@ -296,16 +296,757 @@ ingress多重控制场优化模型
 
 ##算法的弊端及优化
 
-上述算法能够得到理论上的最优解，但其弊端也十分明显，就是时间复杂度极高。程序的运行时间呈指数爆炸式增长，在内点增加到一定程度之后就难以得到结果。因此，必须对以上算法进行一定的优化，在能够满足大部分需求，并能够在大部分情况下得到最优解的条件下大大减少时间复杂度。
+递归优化算法理论上能够得到最优解，但其弊端也十分明显，就是时间复杂度极高，由于**必须保存局部的所有最优解才能保证到达全局最优解**，故需保存和遍历的规模**呈指数爆炸式增长**，在内点增加(实际测试三角形有5个内点已经很难得到结果)到一定程度之后就难以得到结果。因此，必须对以上算法进行一定的优化，在能够满足大部分需求，并能够在大部分情况下以较小的复杂度得到较优解。
 
-### 实现方法
+### 优化方法
    
-   算法优化采用map检索系统，即在原有的递归算法下，加入算过顶点的map，当计算到f(A,B,C,Ai,Bi,Ci)时，若之前已计算过三角形ABC的最优连接方式，则使用之前已计算的连接方式。
++ 局部最优解只保存一个，而不是保存所有，这样的坏处是显然的，有可能无法获得全局最优解，因为某一个特定局部最优解不一定是全局最优解的一部分。
 
-代码实现：
++ 迭代过程增加`map`存取检索，将已经优化过的局部解存入`hash_map`，将指数增长的时间复杂度降低至**多项式时间**。
 
 
+## 代码实现
 
+采用`python`语言实现
+
+```python
+# -*- coding: UTF-8 -*-
+# planner.py
+
+from copy import deepcopy
+from itertools import product
+from random import shuffle
+from operator import itemgetter
+
+class Point(object):
+    """Point (x, y)"""
+    def __init__(self, x, y):
+        super(Point, self).__init__()
+        self.x = x
+        self.y = y
+
+    def __repr__(self):
+        return '(%0.0f, %0.0f)' % (self.x, self.y)
+
+    def __str__(self):
+        return '(%0.0f, %0.0f)' % (self.x, self.y)
+
+    def __lt__(self, other):
+        return self.x < other.x or (self.x == other.x and self.y < other.y)
+
+    def __eq__(self, other):
+        if isinstance(other, Point):
+            return (self.x == other.x) and (self.y == other.y)
+        else:
+            return False
+
+    def __ne__(self, other):
+        return (not self.__eq__(other))
+
+    def __hash__(self):
+        return hash(self.__repr__())
+
+def crossProduct(p0, p1, p2):
+    """return vector (p0->p1) cross (p0->p2)"""
+    return (p1.x - p0.x) * (p2.y - p0.y) - (p2.x - p0.x) * (p1.y - p0.y)
+
+class PointSet(object):
+    """Set {P1, P2, ...}"""
+    def __init__(self, point_list):
+        super(PointSet, self).__init__()
+        self.point_list = point_list
+        self.need_update = True
+
+    def __repr__(self):
+        return self.point_list.__repr__()
+
+    def __str__(self):
+        return self.point_list.__str__()
+
+    def __iter__(self):
+        return self.point_list.__iter__()
+
+    def __getitem__(self, index):
+        return self.point_list[index]
+
+    @property
+    def norm(self):
+        return len(self.point_list)
+
+    def sortPoint(self):
+        self.point_list.sort()
+
+    def addPoint(self, new_point):
+        self.point_list.append(new_point)
+        self.need_update = True
+
+    def remove(self, target):
+        self.point_list.remove(target)
+
+    @property
+    def convex_hull(self):
+        """return vertex set of convex hull"""
+        if self.need_update:
+            # sort by coordinate x
+            self.sortPoint()
+
+            lower_hull = []
+            # lower hull
+            for point in self:
+                while (len(lower_hull) >= 2
+                        and crossProduct(lower_hull[-2], lower_hull[-1], point) <= 0):
+                    lower_hull.pop()
+                lower_hull.append(point)
+
+            upper_hull = []
+            # upper hull
+            for point in self:
+                while (len(upper_hull) >= 2
+                        and crossProduct(upper_hull[-2], upper_hull[-1], point) >= 0):
+                    upper_hull.pop()
+                upper_hull.append(point)
+            upper_hull.pop(0)
+            upper_hull.pop()
+            upper_hull.reverse()
+
+            self._convex_hull = ConvexHull(lower_hull + upper_hull)
+            self.need_update = False
+
+            self.inner_points = deepcopy(self.point_list)
+            for point in self._convex_hull:
+                self.inner_points.remove(point)
+
+        return self._convex_hull
+
+    def cover(self, point):
+        """return whether point is inside convex hull's coverage"""
+        for i in xrange(1, self.convex_hull.norm):
+            if crossProduct(point, self.convex_hull[i-1], self.convex_hull[i]) <= 0:
+                return False
+        return True if crossProduct(point, self.convex_hull[-1], self.convex_hull[0]) > 0 else False
+
+    def divide(self, partition):
+        """determine the location of each point under the partition"""
+        new_partition = []
+        for triangle in partition:
+            # IsInstance(triangle, ConvexHull) is True
+            if not isinstance(triangle, Triangle):
+                triangle = Triangle(triangle.point_list)    # triangle with no inner points
+            for point in self.inner_points:
+                triangle.addInnerPoints(point)
+            new_partition.append(triangle)
+        return new_partition
+
+    def findBalanceKeySolution(self):
+        partitions = [self.divide(partition) for partition in self.convex_hull.triangulation()]
+        solution = {}
+        for partition in partitions:
+            # print partition
+            # raw_input()
+            triangle_result_map = {}
+            for triangle in partition:
+                # print triangle
+                # raw_input()
+                if triangle not in triangle_result_map:
+                    outer_links_set = None
+                    init_out = {}
+                    init_in = {}
+                    for tri in triangle_result_map:
+                        result = triangle_result_map[tri]
+                        if tri.isNeighbour(triangle):
+                            str_dict = {tri.A:'A', tri.B:'B', tri.C:'C'}
+                            common_edge = tri.commonEdge(triangle)
+                            # print common_edge
+                            # print result['links']
+                            # raw_input()
+                            directed_edge = result['links'][result['links'].index(common_edge)]
+                            # print directed_edge
+                            # print common_edge
+                            outer_links_set = genOuterLinksSet(triangle.getOuterIndex(directed_edge), directed_edge, triangle)
+                            init_out = {directed_edge.origin:max(0,result['out_degree_'+str_dict[directed_edge.origin]]-1)}
+                            init_in = {directed_edge.target:max(0,result['in_degree_'+str_dict[directed_edge.target]]-1)} 
+                            break
+                    # if outer_links_set is not None:
+                    #     for ele in outer_links_set:
+                    #         print ele
+                    triangle_result_map[triangle] = triangle.findBalanceKeySolution(outer_links_set=outer_links_set,
+                                                                                    init_out=init_out, init_in=init_in)
+                # print triangle_result_map
+                # raw_input()
+
+            inner_max_key = max([value['key'] for value in triangle_result_map.values()])
+            outer_max_key_dict = dict([(vertex, 0) for vertex in self.convex_hull])
+            outer_out_degree_dict = dict([(vertex, 0) for vertex in self.convex_hull])
+            tmp_links = []
+            for triangle, result in triangle_result_map.items():
+                tmp_links += result['links']
+                # str_dict = {triangle.A:'A', triangle.B:'B', triangle.C:'C'}
+                outer_max_key_dict[triangle.A] += result['in_degree_A']
+                outer_max_key_dict[triangle.B] += result['in_degree_B']
+                outer_max_key_dict[triangle.C] += result['in_degree_C']
+                outer_out_degree_dict[triangle.A] += result['out_degree_A']
+                outer_out_degree_dict[triangle.B] += result['out_degree_B']
+                outer_out_degree_dict[triangle.C] += result['out_degree_C']
+                for link in result['links']:
+                    if (link.origin in [triangle.A, triangle.B, triangle.C] and
+                        link.target in [triangle.A, triangle.B, triangle.C]):
+                        # whether link is bound of convex hull
+                        i1 = self.convex_hull.point_list.index(link.origin)
+                        i2 = self.convex_hull.point_list.index(link.target)
+                        if not((abs(i1 - i2) == 1) or (abs(i1 - i2) == self.convex_hull.norm - 1)):
+                            outer_max_key_dict[link.target] -= 0.5
+                            outer_out_degree_dict[link.origin] -= 0.5
+            max_key = max(inner_max_key, max(outer_max_key_dict.values()))
+            max_out_degree = max(outer_out_degree_dict.values())
+            links = []
+            for link in tmp_links:
+                if link not in links:
+                    links.append(link)
+            if max_out_degree > 8:
+                max_key = float('inf')
+            if solution == {} or max_key <= solution['max_key']:
+                solution = {'max_key':max_key, 'max_out_degree':max_out_degree, 'links':links}
+        return solution
+
+
+def genOuterLinksSet(index, link, triangle):
+    sets = [[Link(triangle.A, triangle.B), Link(triangle.A, triangle.B, reverse=True)],
+            [Link(triangle.B, triangle.C), Link(triangle.B, triangle.C, reverse=True)],
+            [Link(triangle.C, triangle.A), Link(triangle.C, triangle.A, reverse=True)]]
+    sets[index] = [link]
+    # print link
+    return product(sets[0], sets[1], sets[2])
+
+
+class ConvexHull(PointSet):
+    def __init__(self, point_list):
+        super(ConvexHull, self).__init__(point_list)
+        
+    def isNeighbour(self, other):
+        return len(set(self.point_list).intersection(set(other.point_list))) == 2
+
+    def triangulation(self):
+        """return set of [triangle, triangle, ...]"""
+        partitions = []
+        partition = []
+        if self.norm >= 3:
+            for i in range(1, self.norm-1):
+                middle_part = ConvexHull([self[0], self[i], self[-1]])
+                right_part = ConvexHull(self[:i+1])
+                left_part = ConvexHull(self[i:])
+                if right_part.norm < 3:
+                    if left_part.norm < 3:
+                        partition.append(middle_part)
+                        partitions.append(partition)
+                    else:
+                        for a in left_part.triangulation():
+                            for b in middle_part.triangulation():
+                                partitions.append(a + b + partition)
+                elif left_part.norm < 3:
+                    for a in middle_part.triangulation():
+                        for b in right_part.triangulation():
+                            partitions.append(a + partition + b)
+                else:
+                    for a in left_part.triangulation():
+                        for b in middle_part.triangulation():
+                            for c in right_part.triangulation():
+                                partitions.append(a + b + partition + c)
+        return partitions
+
+class Triangle(PointSet):
+    """a point set whose convex hull is a triangle (ABC), find balance-key solution here"""
+
+    result_map = {}
+    
+    def __init__(self, point_list, custom=False):
+        super(Triangle, self).__init__(point_list)
+        if not custom:
+            self.A = self.convex_hull[0]
+            self.B = self.convex_hull[1]
+            self.C = self.convex_hull[2]
+        else:
+            self.A = point_list[0]
+            self.B = point_list[1]
+            self.C = point_list[2]
+
+    def __repr__(self):
+        return ('\n' + 'outer: ' + [self.A, self.B, self.C].__repr__() + '\n'
+                + 'inner: ' + self.inner_points.__repr__())
+
+    def __str__(self):
+        return ('\n' + 'outer: ' + [self.A, self.B, self.C].__str__() + '\n'
+                + 'inner: ' + self.inner_points.__str__())
+
+    def __eq__(self, other):
+        return ((self.A == other.A and self.B == other.B and self.C == other.C)
+             or (self.A == other.B and self.B == other.C and self.C == other.A)
+             or (self.A == other.C and self.B == other.A and self.C == other.B))
+
+    def __hash__(self):
+        return self.A.__hash__() + self.B.__hash__() + self.C.__hash__()
+
+    def addInnerPoints(self, new_point):
+        if self.cover(new_point):
+            self.point_list.append(new_point)
+            self.inner_points.append(new_point)
+
+    def nextVertex(self, vertex):
+        if vertex == self.A:
+            return self.B
+        elif vertex == self.B:
+            return self.C
+        else:
+            return self.A
+
+    def previousVertex(self, vertex):
+        if vertex == self.A:
+            return self.C
+        elif vertex == self.B:
+            return self.A
+        else:
+            return self.B
+
+    def isNeighbour(self, other):
+        return len(set([self.A, self.B, self.C]).intersection(set([other.A, other.B, other.C]))) == 2
+
+    def commonEdge(self, other):
+        intersection = list(set([self.A, self.B, self.C]).intersection(set([other.A, other.B, other.C])))
+        return Link(intersection[0], intersection[1])
+
+    def getOuterIndex(self, link):
+        """return index of link in [AB, BC, CA]"""
+        if link == Link(self.A, self.B):
+            return 0
+        elif link == Link(self.B, self.C):
+            return 1
+        elif link == Link(self.C, self.A):
+            return 2
+        else:
+            return None
+
+    def divideIntoThreeTriangle(self, divider):
+        ABD = Triangle([self.A, self.B, divider], custom=True)
+        BCD = Triangle([self.B, self.C, divider], custom=True)
+        DCA = Triangle([divider, self.C, self.A], custom=True)
+        return self.divide([ABD, BCD, DCA])
+        
+    def findBalanceKeySolution(self, outer_links_set=None, depth=0, init_out={}, init_in={}):
+        """return a map
+        'key': min(max(degree_in) for all vertices) for all partition, 
+        'links'
+        'out_degree_A', 'out_degree_B', 'out_degree_C'
+        'in_degree_A', 'in_degree_B', 'in_degree_C'
+        """
+        if outer_links_set == None:
+            outer_links_set = product([Link(self.A, self.B), Link(self.A, self.B, reverse=True)],
+                                      [Link(self.B, self.C)],
+                                      [Link(self.C, self.A), Link(self.C, self.A, reverse=True)])
+        result = {}
+        if self.norm == 3:
+            result = {'key':1, 'links':[],
+                    'out_degree_A':0, 'out_degree_B':0, 'out_degree_C':0,
+                    'in_degree_A':0, 'in_degree_B':0, 'in_degree_C':0}
+            # if depth == 0:
+            result['links'] = testFeasibility(list(iter(outer_links_set).next()))[1]
+            return result
+        # print self
+        for outer_links in outer_links_set:
+            # print outer_links
+            # raw_input()
+            # traverse all possible divide point
+            for divider in self.inner_points:    # mark divider as 'D'
+                # traverse jet link in [A->D, B->D, C->D]
+                for jet_point in [self.A, self.B, self.C]:  # mark jet_point as 'A'
+                    # traverse direction of BD
+                    for d_BD in [0, 1]:     # d_BD == 1 means B->D
+                        # traverse direction of CD
+                        for d_CD in [0, 1]:     # d_CD == 1 means C->D
+                            if jet_point == self.A:
+                                AD = Link(self.A, divider, jet_link=True, triangle=self)
+                                BD = Link(self.B, divider, 1-d_BD)
+                                CD = Link(self.C, divider, 1-d_CD)
+                            elif jet_point == self.B:
+                                AD = Link(self.A, divider, 1-d_CD)
+                                BD = Link(self.B, divider, jet_link=True, triangle=self)
+                                CD = Link(self.C, divider, 1-d_BD)
+                            else:
+                                AD = Link(self.A, divider, 1-d_BD)
+                                BD = Link(self.B, divider, 1-d_CD)
+                                CD = Link(self.C, divider, jet_link=True, triangle=self)
+
+                            sub_triangles = self.divideIntoThreeTriangle(divider)
+                            sub_results = []
+                            for triangle in sub_triangles:
+                                if triangle.norm == 3:
+                                    sub_results.append(triangle.findBalanceKeySolution(depth=depth+1, init_out=init_out, init_in=init_in))
+                                elif triangle in Triangle.result_map:
+                                    sub_results.append(Triangle.result_map[triangle])
+                                else:
+                                    index = sub_triangles.index(triangle)
+                                    if index == 0:
+                                        # print [outer_links[0], BD, AD]
+                                        # print triangle
+                                        # raw_input()
+                                        tmp = triangle.findBalanceKeySolution([[outer_links[0], BD, AD]], depth=depth+1, init_out=init_out, init_in=init_in)
+                                    elif index == 1:
+                                        tmp = triangle.findBalanceKeySolution([[outer_links[1], CD, BD]], depth=depth+1, init_out=init_out, init_in=init_in)
+                                    else:
+                                        tmp = triangle.findBalanceKeySolution([[CD, outer_links[2], AD]], depth=depth+1, init_out=init_out, init_in=init_in)
+                                    Triangle.result_map[triangle] = tmp
+                                    sub_results.append(tmp)
+                            tmp_result = {}
+
+                            tmp_result['links'] = sub_results[0]['links'] + sub_results[1]['links'] + sub_results[2]['links']
+
+                            tmp_result['links'] += [AD, BD, CD]
+                            tmp_result['out_degree_A'] = sub_results[0]['out_degree_A'] + sub_results[2]['out_degree_C']
+                            tmp_result['out_degree_B'] = sub_results[0]['out_degree_B'] + sub_results[1]['out_degree_A']
+                            tmp_result['out_degree_C'] = sub_results[1]['out_degree_B'] + sub_results[2]['out_degree_B']
+                            tmp_result['in_degree_A'] = sub_results[0]['in_degree_A'] + sub_results[2]['in_degree_C']
+                            tmp_result['in_degree_B'] = sub_results[0]['in_degree_B'] + sub_results[1]['in_degree_A']
+                            tmp_result['in_degree_C'] = sub_results[1]['in_degree_B'] + sub_results[2]['in_degree_B']
+
+                            if jet_point == self.A:
+                                tmp_result['out_degree_A'] += 1
+                                tmp_result['out_degree_B'] += d_BD
+                                tmp_result['out_degree_C'] += d_CD
+                                tmp_result['in_degree_B'] += 1-d_BD
+                                tmp_result['in_degree_C'] += 1-d_CD
+                            elif jet_point == self.B:
+                                tmp_result['out_degree_B'] += 1
+                                tmp_result['out_degree_C'] += d_BD
+                                tmp_result['out_degree_A'] += d_CD
+                                tmp_result['in_degree_C'] += (1-d_BD)
+                                tmp_result['in_degree_A'] += (1-d_CD)
+                            else:
+                                tmp_result['out_degree_C'] += 1
+                                tmp_result['out_degree_A'] += d_BD
+                                tmp_result['out_degree_B'] += d_CD
+                                tmp_result['in_degree_A'] += (1-d_BD)
+                                tmp_result['in_degree_B'] += (1-d_CD)
+
+                            in_degree_D = 1 + d_BD + d_CD + sub_results[0]['in_degree_C'] + sub_results[1]['in_degree_C'] + sub_results[2]['in_degree_A']
+                            if depth == 0:
+                                tmp_result['in_degree_D'] = in_degree_D
+                            str_dict = {self.A:'A', self.B:'B', self.C:'C'}
+                            actual_out_degrees = {'A':tmp_result['out_degree_A'], 'B':tmp_result['out_degree_B'], 'C':tmp_result['out_degree_C']}
+                            actual_in_degrees = {'A':tmp_result['in_degree_A'], 'B':tmp_result['in_degree_B'], 'C':tmp_result['in_degree_C']}
+                            for link in outer_links:
+                                # print self.A, self.B, self.C
+                                # print outer_links
+                                # print link
+                                # raw_input()
+                                actual_out_degrees[str_dict[link.origin]] += 1
+                                actual_in_degrees[str_dict[link.target]] += 1
+                                # print actual_out_degrees
+                                # print actual_in_degrees
+
+                            for point in [self.A, self.B, self.C]:
+                                if point in init_out:
+                                    actual_out_degrees[str_dict[point]] += init_out[point]
+                                if point in init_in:
+                                    actual_in_degrees[str_dict[point]] += init_in[point]
+
+                            if depth == 0:
+                                # print self
+                                for p in str_dict.values():
+                                    tmp_result['out_degree_'+p] = actual_out_degrees[p]
+                                    tmp_result['in_degree_'+p] = actual_in_degrees[p]
+
+                            tmp_result['key'] = max(max([sub_result['key'] for sub_result in sub_results]), 
+                                                max(actual_in_degrees.values()), in_degree_D)
+
+                            if max(actual_out_degrees.values()) > 8:
+                                tmp_result['key'] = float('inf')
+
+                            # test feasibility
+                            test_result = testFeasibility(tmp_result['links'] + list(outer_links))
+                            if not test_result[0]:
+                                tmp_result['key'] = float('inf')
+                            elif depth == 0:
+                                tmp_result['links'] = test_result[1]
+
+                            if result == {} or tmp_result['key'] <= result['key']:
+                                result = tmp_result
+        return result
+
+def testFeasibility(links):
+    jet_links = [link for link in links if link.jet_link]
+    jet_links.sort()
+
+    try:
+        link_seq = drawOtherLinks(jet_links[0], jet_links, links)
+    except NameError:
+        return (False, [])
+    except IndexError:
+        return (True, links)
+    return (True, link_seq)
+
+def drawOtherLinks(jet_link, jet_links, links, edges=[]):
+    A = jet_link.origin
+    D = jet_link.target
+    B = jet_link.triangle.nextVertex(A)
+    C = jet_link.triangle.previousVertex(A)
+    BD = Link(B, D)
+    CD = Link(C, D)
+    BC = Link(B, C)
+    AB = Link(A, B)
+    AC = Link(A, C)
+    seq = [edge for edge in [BD, CD, BC, AB, AC] if edge not in edges]
+    can_link = []
+    for edge in seq:
+        for link in links:
+            if edge == link:
+                edge = link
+        # find triangle
+        # get all vertices
+        vertices = []
+        for ele in edges + can_link:
+            vertices.append(ele.origin)
+            vertices.append(ele.target)
+        vertices = {}.fromkeys(vertices).keys()
+
+        for ele in edges + can_link:
+            for vertex in vertices:
+                if Link(ele.origin, vertex) in edges + can_link and Link(ele.target, vertex) in edges + can_link:
+                    # find a triangle
+                    if Triangle([ele.origin, ele.target, vertex]).cover(edge.origin):
+                        # origin inside an existing triangle
+                        raise NameError('Inside an existing field!')
+
+        if edge in jet_links:
+            return (drawOtherLinks(edge, jet_links, links, edges + can_link))
+        else:
+            # can link
+            can_link.append(edge)
+    jet_links.remove(jet_link)
+    if jet_links != []:
+        return drawOtherLinks(jet_links[0], jet_links, links, edges + can_link + [jet_link])
+    else:
+        return edges + can_link + [jet_link]
+
+
+class Link(object):
+    """link from origin to target"""
+    def __init__(self, origin, target, reverse=False, jet_link=False, triangle=None):
+        super(Link, self).__init__()
+        self.origin = origin if not reverse else target
+        self.target = target if not reverse else origin
+        self.jet_link = jet_link
+        self.triangle = triangle
+
+    def __repr__(self):
+        return self.origin.__repr__() + '->' + self.target.__str__()
+
+    def __str__(self):
+        return self.origin.__str__() + '->' + self.target.__str__()
+
+    def __eq__(self, other):
+        return ((self.origin == other.origin and self.target == other.target)
+                or (self.origin == other.target and self.target == other.origin))
+
+    def __lt__(self, other):
+        if self.jet_link and other.jet_link:
+            if other.triangle.cover(self.origin):
+                return -1
+            elif self.triangle.cover(other.origin):
+                return 1
+            else:
+                return 0
+        return 0
+
+    def __hash__(self):
+        return self.origin.__hash__() + self.target.__hash__()
+
+
+if __name__ == '__main__':
+    # s = PointSet([Point(0,0), Point(30,0), Point(40,30), Point(20,50), Point(10,20), Point(20,10),
+    #               Point(8,7), Point(15,9), Point(10,30), Point(10,1), Point(28,28)])
+    s = PointSet([Point(40009746,116325990), Point(40009195,116326570), Point(40009154,116327023), 
+                  Point(40008720,116325757), Point(40008616,116325533), Point(40008519,116326469), 
+                  Point(40008455,116325360), Point(40008396,116325855), Point(40008393,116326263), 
+                  Point(40008239,116325485), Point(40008224,116326805), Point(40008151,116327164), 
+                  Point(40008131,116326011), Point(40008129,116326349), Point(40008102,116326605), 
+                  Point(40008082,116325288), Point(40008077,116324930), Point(40008034,116325578), 
+                  Point(40008006,116326991), Point(40008008,116327477), Point(40007854,116324331), 
+                  Point(40007761,116324901)])
+    # s = PointSet([Point(0,0), Point(4,4), Point(4,0), Point(0,4), Point(1,2)])
+    solution = s.findBalanceKeySolution()
+    print solution
+    print 
+    i = 0
+    for link in solution['links']:
+        print i, ': ', link
+        i += 1
+    # t = Triangle([Point(0,0), Point(10,30), Point(30,0), Point(20,10), Point(8,7), Point(15,9), Point(10,1),
+    #               Point(5,10), Point(20,5), Point(21,4), Point(11,13), Point(13,3)])
+    # t = Triangle([Point(0,0), Point(10,30), Point(30,0), Point(10,10), Point(5,3), Point(20,4)])
+    # t = Triangle([Point(0,0), Point(10,30), Point(30,0), Point(10,10), Point(5,10)])
+    # t = Triangle([Point(0,0), Point(4,0), Point(0,4), Point(1,2)])
+    # print t
+    # result = t.findBalanceKeySolution(init_out={Point(0,0):4})
+    # print result
+    # print 
+    # i = 0
+    # for link in result['links']:
+    #     print i, ': ', link
+    #     i += 1
+    
+```
+
+
+## 方案有效性的判断及评价
+
+### 有效性判断
+
+#### link 不交叉
+
+```python
+def ccw(a, b, c):
+    return (c.y - a.y) * (b.x - a.x) > (b.y - a.y) * (c.x - a.x)
+
+class Link(object):
+    # …
+    def intersect(self, other):
+        if ({self.in_po, self.out_po} &
+            {other.in_po, other.out_po}):
+            return False  # Share a portal.
+
+        return (ccw(self.out_po, other.out_po, other.in_po) !=
+                ccw(self.in_po, other.out_po, other.in_po) and
+                ccw(self.out_po, self.in_po, other.out_po) !=
+                ccw(self.out_po, self.in_po, other.in_po))
+    # …
+```
+
++ 验证结果与理论预测相符，迭代过程自然保证了`link`不交叉
+
+#### 不能从 field 里出射
+
+在每个 field 形成时，标记其盖住的 portal。
+
+具体实现方式则是，将每个 portal 的坐标转换为新 field 下的质心坐标，若坐标各分量均大于 0
+则说明该 portal 在该 field 内。核心代码如下：
+
+```python
+class Link(object):
+    # …
+    def contains(self, portal):
+        """Check whether a portal is inside this field"""
+        # Using barycentric coordinates.
+        # Algorithm from http://stackoverflow.com/questions/2049582/
+        #                how-to-determine-a-point-in-a-triangle.
+        # Thanks Andreas Brinck & andreasdr.
+        apexes = self.apexes
+
+        s = 1 / (2 * self.signed_area) * (
+            portal.x * (apexes[2].y - apexes[0].y) +
+            apexes[0].x * (portal.y - apexes[2].y) +
+            apexes[2].x * (apexes[0].y - portal.y))
+
+        t = 1 / (2 * self.signed_area) * (
+            portal.x * (apexes[0].y - apexes[1].y) +
+            apexes[0].x * (apexes[1].y - portal.y) +
+            apexes[1].x * (portal.y - apexes[0].y))
+
+        return s > 0 and t > 0 and 1 - s - t > 0
+
+    # …
+```
+
++ 验证结果与预期相符，保证方案可行的算法保证了不从`field`内部出射。
+
+#### 出度小于等于 8
+
++ 迭代过程中一旦出度超过8，将`max_key`置为正无穷，即表示不可行，自然被筛选掉。
+
+
+### 评价
+
+#### AP
+
+在 link 时更新，link 中存有 link 和该 link 形成的 field 的总 AP
+
+**注** 游戏中`link +313AP`，`field +1250AP`
+
+测试样例如下(紫荆雕塑园，共22个`portal`，凸包为五边形)
+
+```
+<link from 4 to 5, 313 AP>,
+<link from 5 to 7, 313 AP>,
+<link from 4 to 7, 1563 AP>,
+<link from 2 to 4, 313 AP>,
+<link from 2 to 7, 1563 AP>,
+<link from 1 to 2, 313 AP>,
+<link from 7 to 1, 1563 AP>,
+<link from 1 to 4, 2813 AP>,
+<link from 1 to 5, 2813 AP>,
+<link from 7 to 3, 313 AP>,
+<link from 3 to 1, 1563 AP>,
+<link from 3 to 2, 2813 AP>,
+<link from 16 to 10, 313 AP>,
+<link from 10 to 7, 313 AP>,
+<link from 7 to 16, 1563 AP>,
+<link from 16 to 3, 1563 AP>,
+<link from 3 to 10, 2813 AP>,
+<link from 8 to 16, 313 AP>,
+<link from 3 to 8, 1563 AP>,
+<link from 1 to 22, 313 AP>,
+<link from 3 to 22, 1563 AP>,
+<link from 22 to 7, 2813 AP>,
+<link from 22 to 16, 2813 AP>,
+<link from 22 to 8, 2813 AP>,
+<link from 22 to 17, 313 AP>,
+<link from 21 to 17, 313 AP>,
+<link from 22 to 21, 1563 AP>,
+<link from 1 to 21, 1563 AP>,
+<link from 1 to 17, 2813 AP>,
+<link from 20 to 15, 313 AP>,
+<link from 15 to 18, 313 AP>,
+<link from 20 to 18, 1563 AP>,
+<link from 20 to 12, 313 AP>,
+<link from 18 to 12, 1563 AP>,
+<link from 12 to 15, 2813 AP>,
+<link from 9 to 13, 313 AP>,
+<link from 13 to 14, 313 AP>,
+<link from 14 to 9, 1563 AP>,
+<link from 9 to 18, 313 AP>,
+<link from 18 to 14, 1563 AP>,
+<link from 18 to 13, 2813 AP>,
+<link from 11 to 14, 313 AP>,
+<link from 9 to 11, 1563 AP>,
+<link from 9 to 12, 1563 AP>,
+<link from 12 to 14, 2813 AP>,
+<link from 12 to 11, 2813 AP>,
+<link from 20 to 6, 313 AP>,
+<link from 18 to 6, 1563 AP>,
+<link from 6 to 12, 2813 AP>,
+<link from 6 to 9, 2813 AP>,
+<link from 18 to 19, 313 AP>,
+<link from 19 to 20, 1563 AP>,
+<link from 6 to 22, 313 AP>,
+<link from 22 to 20, 1563 AP>,
+<link from 22 to 18, 2813 AP>,
+<link from 22 to 19, 2813 AP>,
+<link from 20 to 3, 1563 AP>,
+<link from 3 to 6, 2813 AP>
+```
+
+#### 行走距离
+
+    总距离 = 连接方案中依次连接每条 link 出射 portal 的路径的长度
+    
++ 生成的紫荆雕塑园方案估算行走距离大约为5.5km，符合直观与经验
+
+### 多人规划
+
+由于算法的性质，最后得到的连接方案本身就有**聚集**的性质，即相近的 link 在连接方案中也相近。
+
+故 n 人规划时，以平均化 AP 为目标，将连接方案分成 AP 相近的几个块，从而达到多人规划的目的。
+
+如3人规划紫荆雕塑园，共57条`link`，0号agent连接0~21号`link`, 1号agent连接22~42，2号agent连接43~56，三人分别获得经验29386,27823,28445，较为平均。
+
++ 可能改进：可生成一张经验获得地图，即在给定方案下，可在给定点集上标出各点能获得的经验值，对地图进行区域划分，大致分为经验平均的若干区域，供多个agent合作，这样形成的方案各agent行走距离较小，效率高，但图形划分的实现较为困难。
 
 # 测试结果及分析
 
