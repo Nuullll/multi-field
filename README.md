@@ -209,14 +209,16 @@ ingress多重控制场优化模型
     
 对于三角形ABC中的其中一个内点`D`，有递归式：
 
-    f(A,B,C,Ai,Ao,Bi,Bo,Ci,Co,dAB,dBC,dCA)=max{ Ai+dCA+dBA;
-                                                Ci+dAC+dBC;
-                                                Bi+dCB+dAB;
-                                                f(D,B,C,Di1,Do1,Bi1,Bo1,Ci1,Co1,dDB,dBC,dCD);
-                                                f(A,D,C,Ai2,Ao2,Di2,Do2,Ci2,Co2,dAD,dDC,dCA);
-                                                f(A,B,D,Ai3,Ao3,Bi3,Bo3,Di3,Do3,dAB,dBD,dDA);
-                                                Di1+Di2+Di3+dAD+dBD+dCD;
-                                                }
+    f(A,B,C,Ai,Ao,Bi,Bo,Ci,Co,dAB,dBC,dCA)
+    =max{ 
+            Ai+dCA+dBA;
+            Ci+dAC+dBC;
+            Bi+dCB+dAB;
+            f(D,B,C,Di1,Do1,Bi1,Bo1,Ci1,Co1,dDB,dBC,dCD);
+            f(A,D,C,Ai2,Ao2,Di2,Do2,Ci2,Co2,dAD,dDC,dCA);
+            f(A,B,D,Ai3,Ao3,Bi3,Bo3,Di3,Do3,dAB,dBD,dDA);
+            Di1+Di2+Di3+dAD+dBD+dCD;
+        }
 
 **状态转移方程**:
 
