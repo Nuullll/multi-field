@@ -538,8 +538,16 @@ class Link(object):
 
 
 if __name__ == '__main__':
-    s = PointSet([Point(0,0), Point(30,0), Point(40,30), Point(20,50), Point(10,20), Point(20,10),
-                  Point(8,7), Point(15,9), Point(10,30), Point(10,1), Point(28,28)])
+    # s = PointSet([Point(0,0), Point(30,0), Point(40,30), Point(20,50), Point(10,20), Point(20,10),
+    #               Point(8,7), Point(15,9), Point(10,30), Point(10,1), Point(28,28)])
+    s = PointSet([Point(40009746,116325990), Point(40009195,116326570), Point(40009154,116327023), 
+                  Point(40008720,116325757), Point(40008616,116325533), Point(40008519,116326469), 
+                  Point(40008455,116325360), Point(40008396,116325855), Point(40008393,116326263), 
+                  Point(40008239,116325485), Point(40008224,116326805), Point(40008151,116327164), 
+                  Point(40008131,116326011), Point(40008129,116326349), Point(40008102,116326605), 
+                  Point(40008082,116325288), Point(40008077,116324930), Point(40008034,116325578), 
+                  Point(40008006,116326991), Point(40008008,116327477), Point(40007854,116324331), 
+                  Point(40007761,116324901)])
     # t = Triangle([Point(0,0), Point(10,30), Point(30,0), Point(20,10), Point(8,7), Point(15,9), Point(10,1),
     #               Point(5,10), Point(20,5), Point(21,4), Point(11,13), Point(13,3)])
     solution = s.findBalanceKeySolution()
