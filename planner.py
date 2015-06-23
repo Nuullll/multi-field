@@ -228,7 +228,7 @@ class Triangle(PointSet):
             outer_links_set = [outer_links]
         result = {}
         if self.norm == 3:
-            return {'key':0, 'links':[], 
+            return {'key':0, 'links':[],
                     'out_degree_A':0, 'out_degree_B':0, 'out_degree_C':0,
                     'in_degree_A':0, 'in_degree_B':0, 'in_degree_C':0}
         for outer_links in outer_links_set:
@@ -274,50 +274,52 @@ class Triangle(PointSet):
 
                             tmp_result['links'] = sub_results[0]['links'] + sub_results[1]['links'] + sub_results[2]['links']
 
+                            tmp_result['links'] += [AD, BD, CD]
+                            tmp_result['out_degree_A'] = sub_results[0]['out_degree_A'] + sub_results[2]['out_degree_C']
+                            tmp_result['out_degree_B'] = sub_results[0]['out_degree_B'] + sub_results[1]['out_degree_A']
+                            tmp_result['out_degree_C'] = sub_results[1]['out_degree_B'] + sub_results[2]['out_degree_B']
+                            tmp_result['in_degree_A'] = sub_results[0]['in_degree_A'] + sub_results[2]['in_degree_C']
+                            tmp_result['in_degree_B'] = sub_results[0]['in_degree_B'] + sub_results[1]['in_degree_A']
+                            tmp_result['in_degree_C'] = sub_results[1]['in_degree_B'] + sub_results[2]['in_degree_B']
+
                             if jet_point == self.A:
-                                tmp_result['out_degree_A'] = 1 + sub_results[0]['out_degree_A'] + sub_results[2]['out_degree_A']
-                                tmp_result['out_degree_B'] = d_BD + sub_results[0]['out_degree_B'] + sub_results[1]['out_degree_B']
-                                tmp_result['out_degree_C'] = d_CD + sub_results[1]['out_degree_C'] + sub_results[2]['out_degree_C']
-                                tmp_result['in_degree_A'] = sub_results[0]['in_degree_A'] + sub_results[2]['in_degree_A']
-                                tmp_result['in_degree_B'] = 1-d_BD + sub_results[0]['in_degree_B'] + sub_results[1]['in_degree_B']
-                                tmp_result['in_degree_C'] = 1-d_CD + sub_results[1]['in_degree_C'] + sub_results[2]['in_degree_C']
-                                tmp_result['links'].append(AD)
-                                tmp_result['links'].append(BD)
-                                tmp_result['links'].append(CD)
+                                tmp_result['out_degree_A'] += 1
+                                tmp_result['out_degree_B'] += d_BD
+                                tmp_result['out_degree_C'] += d_CD
+                                tmp_result['in_degree_B'] += 1-d_BD
+                                tmp_result['in_degree_C'] += 1-d_CD
                             elif jet_point == self.B:
-                                tmp_result['out_degree_B'] = 1 + sub_results[0]['out_degree_B'] + sub_results[2]['out_degree_B']
-                                tmp_result['out_degree_C'] = d_BD + sub_results[0]['out_degree_C'] + sub_results[1]['out_degree_C']
-                                tmp_result['out_degree_A'] = d_CD + sub_results[1]['out_degree_A'] + sub_results[2]['out_degree_A']
-                                tmp_result['in_degree_B'] = sub_results[0]['in_degree_B'] + sub_results[2]['in_degree_B']
-                                tmp_result['in_degree_C'] = 1-d_BD + sub_results[0]['in_degree_C'] + sub_results[1]['in_degree_C']
-                                tmp_result['in_degree_A'] = 1-d_CD + sub_results[1]['in_degree_A'] + sub_results[2]['in_degree_A']
-                                tmp_result['links'].append(BD)
-                                tmp_result['links'].append(CD)
-                                tmp_result['links'].append(AD)
+                                tmp_result['out_degree_B'] += 1
+                                tmp_result['out_degree_C'] += d_BD
+                                tmp_result['out_degree_A'] += d_CD
+                                tmp_result['in_degree_C'] += (1-d_BD)
+                                tmp_result['in_degree_A'] += (1-d_CD)
                             else:
-                                tmp_result['out_degree_C'] = 1 + sub_results[0]['out_degree_C'] + sub_results[2]['out_degree_C']
-                                tmp_result['out_degree_A'] = d_BD + sub_results[0]['out_degree_A'] + sub_results[1]['out_degree_A']
-                                tmp_result['out_degree_B'] = d_CD + sub_results[1]['out_degree_B'] + sub_results[2]['out_degree_B']
-                                tmp_result['in_degree_C'] = sub_results[0]['in_degree_C'] + sub_results[2]['in_degree_C']
-                                tmp_result['in_degree_A'] = 1-d_BD + sub_results[0]['in_degree_A'] + sub_results[1]['in_degree_A']
-                                tmp_result['in_degree_B'] = 1-d_CD + sub_results[1]['in_degree_B'] + sub_results[2]['in_degree_B']
-                                tmp_result['links'].append(CD)
-                                tmp_result['links'].append(AD)
-                                tmp_result['links'].append(BD)
+                                tmp_result['out_degree_C'] += 1
+                                tmp_result['out_degree_A'] += d_BD
+                                tmp_result['out_degree_B'] += d_CD
+                                tmp_result['in_degree_A'] += (1-d_BD)
+                                tmp_result['in_degree_B'] += (1-d_CD)
 
                             in_degree_D = 1 + d_BD + d_CD + sub_results[0]['in_degree_C'] + sub_results[1]['in_degree_C'] + sub_results[2]['in_degree_A']
-
+                            if depth == 0:
+                                tmp_result['in_degree_D'] = in_degree_D
+                                # print divider, jet_point, d_BD, d_CD
+                                # print sub_results
+                                # raw_input()
                             # if self == Triangle([Point(0,0), Point(30,0), Point(10,30)]):
                             #     print tmp_result
                             str_dict = {self.A:'A', self.B:'B', self.C:'C'}
-                            actual_out_degrees = {'A':0, 'B':0, 'C':0}
-                            actual_in_degrees = {'A':0, 'B':0, 'C':0}
+                            actual_out_degrees = {'A':tmp_result['out_degree_A'], 'B':tmp_result['out_degree_B'], 'C':tmp_result['out_degree_C']}
+                            actual_in_degrees = {'A':tmp_result['in_degree_A'], 'B':tmp_result['in_degree_B'], 'C':tmp_result['in_degree_C']}
                             for link in outer_links:
-                                actual_out_degrees[str_dict[link.origin]] = tmp_result['out_degree_'+str_dict[link.origin]] + 1
-                                actual_in_degrees[str_dict[link.origin]] = tmp_result['in_degree_'+str_dict[link.target]] + 1
-                                if depth == 0:
-                                    tmp_result['out_degree_'+str_dict[link.origin]] = actual_out_degrees[str_dict[link.origin]]
-                                    tmp_result['in_degree_'+str_dict[link.target]] = actual_in_degrees[str_dict[link.origin]]
+                                actual_out_degrees[str_dict[link.origin]] += 1
+                                actual_in_degrees[str_dict[link.target]] += 1
+                            if depth == 0:
+                                # print tmp_result['links']
+                                for p in str_dict.values():
+                                    tmp_result['out_degree_'+p] = actual_out_degrees[p]
+                                    tmp_result['in_degree_'+p] = actual_in_degrees[p]
 
                             tmp_result['key'] = max(max([sub_result['key'] for sub_result in sub_results]), 
                                                 max(actual_in_degrees.values()), in_degree_D)
@@ -339,6 +341,15 @@ class Triangle(PointSet):
 
                             if result == {} or tmp_result['key'] <= result['key']:
                                 result = tmp_result
+
+                            # print 'depth:', depth
+                            # print self.A, self.B, self.C
+                            # print outer_links
+                            # print tmp_result
+                            # print in_degree_D
+                            # print actual_out_degrees
+                            # print actual_in_degrees
+                            # raw_input()
         return result
 
 def testFeasibility(links):
@@ -454,11 +465,10 @@ if __name__ == '__main__':
     #         print triangle
     #     print
 
-    t = Triangle([Point(0,0), Point(10,30), Point(30,0), Point(20,10), 
+    t = Triangle([Point(0,0), Point(10,30), Point(30,0), Point(20,10), Point(8,7), Point(15,9), Point(10,1),
                   Point(5,10), Point(20,5), Point(21,4), Point(11,13), Point(13,3)])
     # t = Triangle([Point(0,0), Point(10,30), Point(30,0), Point(10,10), Point(5,3), Point(20,4)])
-    # t = Triangle([Point(0,0), Point(10,30), Point(30,0), Point(10,10), Point(5,3)])
-
+    # t = Triangle([Point(0,0), Point(10,30), Point(30,0), Point(10,10), Point(5,10)])
     # for triangle in t.divideIntoThreeTriangle(Point(1,1)):
     #     print triangle
     # print t.cover(Point(1,1))
