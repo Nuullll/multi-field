@@ -22,10 +22,16 @@ class Point(object):
         return self.x < other.x or (self.x == other.x and self.y < other.y)
 
     def __eq__(self, other):
-        return (self.x == other.x) and (self.y == other.y)
+        if isinstance(other, Point):
+            return (self.x == other.x) and (self.y == other.y)
+        else:
+            return False
+
+    def __ne__(self, other):
+        return (not self.__eq__(other))
 
     def __hash__(self):
-        return hash(self.x) + hash(self.y)
+        return hash(self.__repr__())
 
 def crossProduct(p0, p1, p2):
     """return vector (p0->p1) cross (p0->p2)"""
@@ -119,13 +125,19 @@ class PointSet(object):
         return new_partition
 
     def findBalanceKeySolution(self):
-        pass
+        partitions = [self.divide(partition) for partition in self.convex_hull.triangulation()]
+        for partition in partitions:
+            pass
+
 
 
 class ConvexHull(PointSet):
     def __init__(self, point_list):
         super(ConvexHull, self).__init__(point_list)
         
+    def isNeighbour(self, other):
+        return len(set(self.point_list).intersection(set(other.point_list))) == 2
+
     def triangulation(self):
         """return set of [triangle, triangle, ...]"""
         partitions = []
@@ -140,18 +152,18 @@ class ConvexHull(PointSet):
                         partition.append(middle_part)
                         partitions.append(partition)
                     else:
-                        for a in middle_part.triangulation():
-                            for b in left_part.triangulation():
-                                partitions.append(partition + a + b)
+                        for a in left_part.triangulation():
+                            for b in middle_part.triangulation():
+                                partitions.append(a + b + partition)
                 elif left_part.norm < 3:
                     for a in middle_part.triangulation():
                         for b in right_part.triangulation():
-                            partitions.append(partition + a + b)
+                            partitions.append(a + partition + b)
                 else:
-                    for a in middle_part.triangulation():
-                        for b in right_part.triangulation():
-                            for c in left_part.triangulation():
-                                partitions.append(partition + a + b + c)
+                    for a in left_part.triangulation():
+                        for b in middle_part.triangulation():
+                            for c in right_part.triangulation():
+                                partitions.append(a + b + partition + c)
         return partitions
 
 class Triangle(PointSet):
@@ -424,8 +436,14 @@ class Link(object):
 
 
 if __name__ == '__main__':
-    t = Triangle([Point(0,0), Point(10,30), Point(30,0), Point(20,10), Point(8,7), Point(15,9), Point(10,1),
-                  Point(5,10), Point(20,5), Point(21,4), Point(11,13), Point(13,3)])
+    s = PointSet([Point(0,0), Point(30,0), Point(40,30), Point(20,50), Point(10,20), Point(20,10),
+                  Point(8,7), Point(15,9), Point(10,30), Point(10,1)])
+    # t = Triangle([Point(0,0), Point(10,30), Point(30,0), Point(20,10), Point(8,7), Point(15,9), Point(10,1),
+    #               Point(5,10), Point(20,5), Point(21,4), Point(11,13), Point(13,3)])
+    for partition in s.convex_hull.triangulation():
+        print partition
+        for i in range(len(partition)-1):
+            print partition[i].isNeighbour(partition[i+1])
     # t = Triangle([Point(0,0), Point(10,30), Point(30,0), Point(10,10), Point(5,3), Point(20,4)])
     # t = Triangle([Point(0,0), Point(10,30), Point(30,0), Point(10,10), Point(5,10)])
     # for triangle in t.divideIntoThreeTriangle(Point(1,1)):
@@ -435,10 +453,10 @@ if __name__ == '__main__':
     # l = [Link(Point(0,0), Point(0,1))]
     # print l.index(Link(Point(0,1), Point(0,0)))
 
-    result = t.findBalanceKeySolution(init_out={Point(0,0):5)
-    print result
-    print 
-    i = 0
-    for link in result['links']:
-        print i, ': ', link
-        i += 1
+    # result = t.findBalanceKeySolution(init_out={Point(0,0):4})
+    # print result
+    # print 
+    # i = 0
+    # for link in result['links']:
+    #     print i, ': ', link
+    #     i += 1
