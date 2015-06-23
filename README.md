@@ -3,38 +3,111 @@ ingress多重控制场优化模型
 
 -------------
 
-#课题
+# 课题
 
-* 虚拟现实游戏Ingress中, 多重控制场(Control Field)的最优构造方案探索
-
-#队伍组成
-
-* 徐安冉   无36     2013011184  (Enl Agent Lv9 @Allenxu)
-* 李思涵   无36     2013011187  (Enl Agent Lv10 @lsh911911)
-* 郭一隆   无36     2013011189  (Enl Agent Lv11 @Vone)
-
-#背景介绍
-
-* **Ingress**
-
-    * Ingress是由Google Niantic Labs开发的一款基于GPS定位的大型多人在线的增强现实游戏, 能在Android & iOS平台运行. 
+- 虚拟现实游戏Ingress中, 多重控制场(Control Field)的最优构造方案探索
 
 
-    * Ingress面向全球拥有Google Account的用户免费开发注册, 全球有超过700万的玩家(2014.9).
+# 队伍组成
 
-    * 在国内, 由于访问Google受限, Ingress知名度并不高, 但在各大城市仍有大量忠实玩家.
+- 李思涵   无36     2013011187
 
-    * 目前国内ingress玩家出现一轮新人井喷, 清华活跃Ingress玩家由4月份的30人左右增加至40人左右(2015.5).
+- 徐安冉   无36     2013011184
 
-* **规则介绍**
-
-
-    * 全球玩家(agent)被划分为两大阵营(Enlightened&Resistence), agent初次进入游戏时自愿选择阵营(Enlightened俗称绿军, Resistence俗称蓝军).
-
-    * 地图上的portal(简称po)为双方争夺的目标, agent可以对portal进行的操作如下表:
+- 郭一隆   无36     2013011189
 
 
+# 背景介绍
 
+## Ingress
+
+- Ingress是由Google Niantic Labs开发的一款**基于GPS定位**的大型多人在线的增强现实游戏, 能在Android & iOS平台运行.
+
+- Ingress面向全球拥有Google Account的用户免费开发注册, 全球有超过700万的玩家(2014.9).
+
+- 在国内, 由于访问Google受限, Ingress知名度并不高, 但在各大城市仍有大量忠实玩家.
+
+- 目前清华活跃Ingress玩家在30人左右.
+
+## 规则介绍
+
+- 全球玩家(agent)被划分为两大阵营(Enlightened&Resistence), agent初次进入游戏时自愿选择阵营(Enlightened俗称绿军, Resistence俗称蓝军).
+
+- 地图上的portal(简称po)为双方争夺的目标, agent可以对portal进行的操作如下表
+
+    | portal归属 |   操作名称  |                             操作效果                             |
+    | :--------: | :---------: | :--------------------------------------------------------------: |
+    |    所有    |     hack    |                             获得道具                             |
+    | 中立, 己方 |    deploy   | 将resonator部署到portal上, 可以capture中立portal, 升级己方portal |
+    |    己方    |   recharge  |                         为portal补充能量                         |
+    |    己方    | install mod |                 为portal安装模块, 提升portal属性                 |
+    |    己方    |     link    |              从当前portal建立一条到其他portal的link              |
+    |    敌方    |  use weapon |              攻击敌方portal使其能量衰减, 模块掉落等              |
+
+- portal一般为现实世界中的地标性建筑或雕像等, 如
+
+    + portal 紫荆园食堂: ![Zijing](Zijing.jpg)
+    + portal 理学馆: ![Lixueguan](Lixueguan.jpg)
+    + portal 清华六教: ![Qinghualiujiao](Qinghualiujiao.jpg)
+
+- 对po的操作(除recharge)都要求agent的GPS位置在po附近.
+
+- 若3条同一阵营的link构成一个闭合三角形, 则该三角形形成一个该阵营的控制场(Control Field), 每建立一个CF会获得相应的AP(经验), 本课题首要目标是在一定区域内建立field使得agent获得的**AP最大化**.
+
+    + ![field](field.jpg)
+
+- link和field的建立遵循以下几条规则:
+
+    + agent站在portal A向portal B建立link时, 需耗费portal B的1把key, portal的key通过hack有一定几率获得.
+
+    + 严格在field内的portal不能向其他portal连link, 换言之, field内的po(简称内点)不能作为link的起点, 但可以作为link的终点.
+
+    + 一个portal至多出射8条link, 而入射link数不限.
+
+    + 对于一条新建立的link, 在其左右两侧分别寻找一个面积最大的field, 作为该link形成的field; 也就是说, 1条link至多形成2个field, 左右各1个.
+
+- 多重field概述
+
+    + ![multi_field](mfield.jpg) 图中共有4个三角形, 在ingress中, 也可以实现构建4个field的link连法.
+
+    + ![mfield1](mfield1.jpg) 先连成图示形状, 最后连接AC, 则根据上一条中的规则4, 仅能形成3个field: ABD, BCD 和 ABC.
+
+    + ![mfield2](mfield2.jpg) 若连成此图形状, 最后连接AD(A->D, 因为D此时已处在field ABC中, 不能作为link起点), 则将形成4个field, 达到经验最大化目的.
+
+    + 上述情况中, 较小的field叠在较大的field之上, 这种field称为多重field.
+
+
+## 课题目标
+
+- 在一定区域内, 已知各portal坐标, 寻找多重field建立方案, 使得:
+
+    + 经验最大化.
+
+    + 耗费的总key数最少, 且耗费各portal的key数量平均化.
+
+    + 对此区域完成多重field覆盖花费的时间最短.
+
+- 分别探讨单个agent独立完成多重field构建和多个agent合作完成的情况.
+
+
+## 选题原因
+
+- **利益相关**:
+
+    + 李思涵(Enlightened agent LV9 @lsh911911)
+    + 徐安冉(Enlightened agent LV6 @AllenXu)
+    + 郭一隆(Enlightened agent LV9 @Vone)
+
+- 颇有难度
+
+
+## 研究进展
+
+- 对于经验最大化的方案, 已经有标准成熟而优美的实现方法, 参考文献[1].
+
+- 关于key数目**平均化**的优化, 以及设法减少耗费时间的研究几乎没有.
+
+- 关于多个agent合作, 参考项目[2]有相关算法, 但考虑的因素比较片面.
 
 # 引论
 
