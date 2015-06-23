@@ -315,6 +315,9 @@ class Triangle(PointSet):
                             for link in outer_links:
                                 actual_out_degrees[str_dict[link.origin]] = tmp_result['out_degree_'+str_dict[link.origin]] + 1
                                 actual_in_degrees[str_dict[link.origin]] = tmp_result['in_degree_'+str_dict[link.target]] + 1
+                                if depth == 0:
+                                    tmp_result['out_degree_'+str_dict[link.origin]] = actual_out_degrees[str_dict[link.origin]]
+                                    tmp_result['in_degree_'+str_dict[link.target]] = actual_in_degrees[str_dict[link.origin]]
 
                             tmp_result['key'] = max(max([sub_result['key'] for sub_result in sub_results]), 
                                                 max(actual_in_degrees.values()), in_degree_D)
@@ -334,7 +337,7 @@ class Triangle(PointSet):
                             elif depth == 0:
                                 tmp_result['links'] = test_result[1]
 
-                            if result == {} or tmp_result['key'] < result['key']:
+                            if result == {} or tmp_result['key'] <= result['key']:
                                 result = tmp_result
         return result
 
