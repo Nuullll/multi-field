@@ -94,18 +94,6 @@ ingress多重控制场优化模型
 
 - 分别探讨单个agent独立完成多重field构建和多个agent合作完成的情况.
 
-
-## 选题原因
-
-- **利益相关**:
-
-    + 李思涵(Enlightened agent LV9 @lsh911911)
-    + 徐安冉(Enlightened agent LV6 @AllenXu)
-    + 郭一隆(Enlightened agent LV9 @Vone)
-
-- 颇有难度
-
-
 ## 研究进展
 
 - 对于经验最大化的方案, 已经有标准成熟而优美的实现方法, 参考文献[1].
