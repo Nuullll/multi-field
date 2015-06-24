@@ -45,15 +45,15 @@ ingress多重控制场优化模型
 
 - portal一般为现实世界中的地标性建筑或雕像等, 如
 
-    + portal 紫荆园食堂: ![Zijing](Zijing.jpg)
-    + portal 理学馆: ![Lixueguan](Lixueguan.jpg)
-    + portal 清华六教: ![Qinghualiujiao](Qinghualiujiao.jpg)
+    + portal 紫荆园食堂: ![Zijing](pic/Zijing.jpg)
+    + portal 理学馆: ![Lixueguan](pic/Lixueguan.jpg)
+    + portal 清华六教: ![Qinghualiujiao](pic/Qinghualiujiao.jpg)
 
 - 对po的操作(除recharge)都要求agent的GPS位置在po附近.
 
 - 若3条同一阵营的link构成一个闭合三角形, 则该三角形形成一个该阵营的控制场(Control Field), 每建立一个CF会获得相应的AP(经验), 本课题首要目标是在一定区域内建立field使得agent获得的**AP最大化**.
 
-    + ![field](field.jpg)
+    + ![field](pic/field.jpg)
 
 - link和field的建立遵循以下几条规则:
 
@@ -67,15 +67,15 @@ ingress多重控制场优化模型
 
 - 多重field概述
 
-![multi_field](mfield.jpg)
+![multi_field](pic/mfield.jpg)
 
 + 图中共有4个三角形, 在ingress中, 也可以实现构建4个field的link连法.
 
-![mfield1](mfield1.jpg)
+![mfield1](pic/mfield1.jpg)
 
 + 先连成图示形状, 最后连接AC, 则根据上一条中的规则4, 仅能形成3个field: ABD, BCD 和 ABC.
 
-![mfield2](mfield2.jpg) 
+![mfield2](pic/mfield2.jpg) 
 
 + 若连成此图形状, 最后连接AD(A->D, 因为D此时已处在field ABC中, 不能作为link起点), 则将形成4个field, 达到经验最大化目的.
 
@@ -109,7 +109,7 @@ ingress多重控制场优化模型
 
 * **定义1.** 给定点集，各点位置确定，各点连接关系（直线段相连）不同可形成不同的图。边不交叉的图称为无交叉图。（以下提到的图不加说明均为无交叉图）若无交叉图已为完全图，或满足任加一条边即成为交叉图，则称该无交叉图完全。
 
-![non-cross](non-cross-graph.png)
+![non-cross](pic/non-cross-graph.png)
 
 * **定义2.** 给定点集，其凸包顶点称为外点，其余点称为内点。
 
@@ -123,7 +123,7 @@ ingress多重控制场优化模型
 
 * **定义5.** 对于点集`S`的一个完全划分`p`，满足对其任意内点`P0`，均有且仅有3个顶点`P1`,`P2`,`P3`两两相邻且均与P0相邻，且`P0`是三角形`P1P2P3`的内点，则称该划分完美，称`P0`为`P1`,`P2`,`P3`构成的三角形的划分点，该三角形为为P0的外三角形，`P0P1`, `P0P2`, `P0P3`为该三角形的划分边。
 
-![perfect-partition](perfect-partition.png)
+![perfect-partition](pic/perfect-partition.png)
 
 * **定义6.** 对于点集S上的一个连接方案，若其边有序，任意顶点出度8，且对于任意边`ei`，任取排在其之前的三条边，则这三条边或不能构成三角形，或`ei`的起始点不在构成的三角形内，则称其为S上的有效连接方案，其集合记作`ValidPlan(S)`。
 
@@ -137,11 +137,11 @@ ingress多重控制场优化模型
   
 * **特例1. (4-key猜想的推翻)** 构造如下图所示点集，内点的分布是上凸的。
 
-![4-key1](4-key1.png)
+![4-key1](pic/4-key1.png)
 
   这种内点的分布使得虚线上任取三个点，其构成的三角形均为原子三角形。为使p完美，虚线上的每个内点均会使上顶点度增加1，否则划分不完美，如下图。
 
-![4-key2](4-key2.png)
+![4-key2](pic/4-key2.png)
 
   而猜想1要求上顶点总度数8+4=12，显然当上凸曲线上的内点数>10时，不存在满足条件的p。
 
@@ -154,7 +154,7 @@ ingress多重控制场优化模型
 
 * **引理3.1.** 考虑下图所示的完美划分，则这种完美划分对应的完美连接方案应满足：
 
-![lemma3.1](lemma3-1.png)
+![lemma3.1](pic/lemma3-1.png)
 
 * **性质3.1.1** 若AD为△ABC的入射边，则AE为△ABD的入射边。（AD与BD对称，AE与BE对称）
 
@@ -178,14 +178,14 @@ ingress多重控制场优化模型
 
 + 求凸包：采用*Andrew's Monotone Chain*算法，分别求`lower hull`和`upper hull`，整合得到凸包。(参考条目[4])
 
-![lower_hull](lowerhull.png)
-![convex_hull](convexhull.png)
+![lower_hull](pic/lowerhull.png)
+![convex_hull](pic/convexhull.png)
 
 + 覆盖：利用叉积判断点是否落在某一凸包围成的区域内
 
 + 凸包三角划分：*Catalan数*递归生成，如图所示，在左右`polygon`递归地划分
 
-![catalan](catalan.png)
+![catalan](pic/catalan.png)
 
 ### 递归寻找最优解
 
@@ -193,7 +193,7 @@ ingress多重控制场优化模型
 
 #### 凸包为三角形的点集
 
-![ABC](image2.jpg)
+![ABC](pic/image2.jpg)
 
 如图，对于完美划分`ABC`，定义：
 
@@ -273,7 +273,7 @@ ingress多重控制场优化模型
 
 + 在构建多重`field`过程中，至关重要的是**最后一条**`link`，它的连接形成了两个`field`，这正是多重`field`形成的`field`数多于“胡乱地连”的关键。如下图，根据规则2：出射点不能在`field`内部，最后一条`link`必为`A->D`，这种可以形成两个`field`的`link`称为`jet_link`。
 
-![jet_link](mfield2.jpg)
+![jet_link](pic/mfield2.jpg)
 
 + 上述递归算法产生的实际上是有向图，而有效连接方案是**有序有向图**，对于给定有向图，由以下算法可判断其能否生成**有效连接方案**：
 
@@ -1066,13 +1066,13 @@ class Link(object):
 
 + 附“肩搭肩”策略示意图
 
-![onshoulder1](onshoulder1.png)
-![onshoulder2](onshoulder2.png)
-![onshoulder3](onshoulder3.png)
-![onshoulder4](onshoulder4.png)
-![onshoulder5](onshoulder5.png)
-![onshoulder6](onshoulder6.png)
-![onshoulder7](onshoulder7.png)
+![onshoulder1](pic/onshoulder1.png)
+![onshoulder2](pic/onshoulder2.png)
+![onshoulder3](pic/onshoulder3.png)
+![onshoulder4](pic/onshoulder4.png)
+![onshoulder5](pic/onshoulder5.png)
+![onshoulder6](pic/onshoulder6.png)
+![onshoulder7](pic/onshoulder7.png)
 
 #### 附：雕塑园最终方案
 
