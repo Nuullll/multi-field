@@ -1,0 +1,6 @@
+languages:
+  Python: true
+
+exclude_paths:
+- pic/
+- solution_22pts.txt
