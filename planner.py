@@ -156,7 +156,7 @@ class PointSet(object):
                             break
                     # if outer_links_set is not None:
                     #     for ele in outer_links_set:
-                    #         print ele
+                            # print ele
                     triangle_result_map[triangle] = triangle.findBalanceKeySolution(outer_links_set=outer_links_set,
                                                                                     init_out=init_out, init_in=init_in)
                 # print triangle_result_map
@@ -327,15 +327,25 @@ class Triangle(PointSet):
         """
         if outer_links_set == None:
             outer_links_set = product([Link(self.A, self.B), Link(self.A, self.B, reverse=True)],
-                                      [Link(self.B, self.C)],
+                                      [Link(self.B, self.C), Link(self.B, self.C, reverse=True)],
                                       [Link(self.C, self.A), Link(self.C, self.A, reverse=True)])
         result = {}
         if self.norm == 3:
-            result = {'key':1, 'links':[],
-                    'out_degree_A':0, 'out_degree_B':0, 'out_degree_C':0,
-                    'in_degree_A':0, 'in_degree_B':0, 'in_degree_C':0}
-            # if depth == 0:
-            result['links'] = testFeasibility(list(iter(outer_links_set).next()))[1]
+            result = {}
+            for outer_links in outer_links_set:
+                tmp_result = {'key':0, 'links':[],
+                        'out_degree_A':0, 'out_degree_B':0, 'out_degree_C':0,
+                        'in_degree_A':0, 'in_degree_B':0, 'in_degree_C':0}
+                # if depth == 0:
+                # print outer_links
+                # tmp_result['links'] = testFeasibility(list(outer_links))[1]
+                key = {self.A:0, self.B:0, self.C:0}
+                for link in outer_links:
+                    key[link.target] += 1
+                tmp_result['key'] = max(key.values())
+
+            if result == {} or tmp_result['key'] <= result['key']:
+                result = tmp_result
             return result
         # print self
         for outer_links in outer_links_set:
@@ -365,9 +375,7 @@ class Triangle(PointSet):
                             sub_triangles = self.divideIntoThreeTriangle(divider)
                             sub_results = []
                             for triangle in sub_triangles:
-                                if triangle.norm == 3:
-                                    sub_results.append(triangle.findBalanceKeySolution(depth=depth+1, init_out=init_out, init_in=init_in))
-                                elif triangle in Triangle.result_map:
+                                if triangle in Triangle.result_map:
                                     sub_results.append(Triangle.result_map[triangle])
                                 else:
                                     index = sub_triangles.index(triangle)
@@ -485,7 +493,11 @@ def drawOtherLinks(jet_link, jet_links, links, edges=[]):
     for edge in seq:
         for link in links:
             if edge == link:
+                # print 'wtf'
+                # print edge
+                # print link
                 edge = link
+                # print edge
         # find triangle
         # get all vertices
         vertices = []
@@ -503,6 +515,10 @@ def drawOtherLinks(jet_link, jet_links, links, edges=[]):
                         raise NameError('Inside an existing field!')
 
         if edge in jet_links:
+            # print edge, edge.jet_link, edge.triangle
+            # print jet_links
+            # print links
+            # raw_input()
             return (drawOtherLinks(edge, jet_links, links, edges + can_link))
         else:
             # can link
@@ -550,32 +566,32 @@ class Link(object):
 if __name__ == '__main__':
     # s = PointSet([Point(0,0), Point(30,0), Point(40,30), Point(20,50), Point(10,20), Point(20,10),
     #               Point(8,7), Point(15,9), Point(10,30), Point(10,1), Point(28,28)])
-    s = PointSet([Point(40009746,116325990), Point(40009195,116326570), Point(40009154,116327023), 
-                  Point(40008720,116325757), Point(40008616,116325533), Point(40008519,116326469), 
-                  Point(40008455,116325360), Point(40008396,116325855), Point(40008393,116326263), 
-                  Point(40008239,116325485), Point(40008224,116326805), Point(40008151,116327164), 
-                  Point(40008131,116326011), Point(40008129,116326349), Point(40008102,116326605), 
-                  Point(40008082,116325288), Point(40008077,116324930), Point(40008034,116325578), 
-                  Point(40008006,116326991), Point(40008008,116327477), Point(40007854,116324331), 
-                  Point(40007761,116324901)])
+    # s = PointSet([Point(40009746,116325990), Point(40009195,116326570), Point(40009154,116327023), 
+    #               Point(40008720,116325757), Point(40008616,116325533), Point(40008519,116326469), 
+    #               Point(40008455,116325360), Point(40008396,116325855), Point(40008393,116326263), 
+    #               Point(40008239,116325485), Point(40008224,116326805), Point(40008151,116327164), 
+    #               Point(40008131,116326011), Point(40008129,116326349), Point(40008102,116326605), 
+    #               Point(40008082,116325288), Point(40008077,116324930), Point(40008034,116325578), 
+    #               Point(40008006,116326991), Point(40008008,116327477), Point(40007854,116324331), 
+    #               Point(40007761,116324901)])
     # s = PointSet([Point(0,0), Point(4,4), Point(4,0), Point(0,4), Point(1,2)])
-    solution = s.findBalanceKeySolution()
-    print solution
-    print 
-    i = 0
-    for link in solution['links']:
-        print i, ': ', link
-        i += 1
-    # t = Triangle([Point(0,0), Point(10,30), Point(30,0), Point(20,10), Point(8,7), Point(15,9), Point(10,1),
-    #               Point(5,10), Point(20,5), Point(21,4), Point(11,13), Point(13,3)])
+    # solution = s.findBalanceKeySolution()
+    # print solution
+    # print 
+    # i = 0
+    # for link in solution['links']:
+        # print i, ': ', link
+    #     i += 1
+    t = Triangle([Point(0,0), Point(10,30), Point(30,0), Point(20,10), Point(8,7), Point(15,9), Point(10,1),
+                  Point(5,10), Point(20,5), Point(21,4), Point(11,13), Point(13,3)])
     # t = Triangle([Point(0,0), Point(10,30), Point(30,0), Point(10,10), Point(5,3), Point(20,4)])
     # t = Triangle([Point(0,0), Point(10,30), Point(30,0), Point(10,10), Point(5,10)])
     # t = Triangle([Point(0,0), Point(4,0), Point(0,4), Point(1,2)])
     # print t
-    # result = t.findBalanceKeySolution(init_out={Point(0,0):4})
-    # print result
-    # print 
-    # i = 0
-    # for link in result['links']:
-    #     print i, ': ', link
-    #     i += 1
+    result = t.findBalanceKeySolution()
+    print result
+    print 
+    i = 0
+    for link in result['links']:
+        print i, ': ', link
+        i += 1
