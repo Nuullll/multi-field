@@ -4,7 +4,7 @@ ingress多重控制场优化模型
 
 # 课题
 
-- 虚拟现实游戏Ingress中, 多重控制场(Control Field)的最优构造方案探索
+- 增强现实游戏Ingress中, 多重控制场(Control Field)的最优构造方案探索
 
 
 # 背景介绍
